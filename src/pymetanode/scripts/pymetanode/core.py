@@ -5,16 +5,24 @@ import maya.OpenMaya as api
 
 
 __all__ = [
+    'addMetaClass',
+    'getAllMetaNodes',
+    'getMetaClasses',
     'getMetaData',
     'getMObject',
+    'getMPlugs',
     'getUUID',
     'hasAttr',
     'hasAttrFast',
+    'isMetaNode',
+    'removeMetaClass',
     'removeMetaData',
     'setMetaData',
 ]
 
-META_ATTR = 'pyMetaData'
+
+METACLASS_ATTR_PREFIX = 'pyMetaClass_'
+METADATA_ATTR = 'pyMetaData'
 
 
 def hasAttr(node, attrName):
@@ -62,6 +70,26 @@ def getMObject(nodeName):
     return node
 
 
+def getMPlugs(matchStrings):
+    """
+    Return all MPlugs in the scene that match the given match strings.
+
+    Args:
+        matchStrings: A list of `ls` command style strings that must
+            include an attribute, e.g. `*.pyMetaData`
+    """
+    sel = api.MSelectionList()
+    for s in matchStrings:
+        try:
+            sel.add(s)
+        except:
+            pass
+    count = sel.length()
+    result = [api.MPlug() for i in range(count)]
+    [sel.getPlug(i, result[i]) for i in range(count)]
+    return result
+
+
 def getUUID(nodeName):
     """
     Return the UUID of the given node
@@ -89,12 +117,12 @@ def setMetaData(node, data):
     mobject = getMObject(node)
     mfnnode = api.MFnDependencyNode(mobject)
     try:
-        plug = mfnnode.findPlug(META_ATTR)
+        plug = mfnnode.findPlug(METADATA_ATTR)
     except:
         mfnattr = api.MFnTypedAttribute()
-        attr = mfnattr.create(META_ATTR, META_ATTR, api.MFnData.kString)
+        attr = mfnattr.create(METADATA_ATTR, METADATA_ATTR, api.MFnData.kString)
         mfnnode.addAttribute(attr)
-        plug = mfnnode.findPlug(META_ATTR)
+        plug = mfnnode.findPlug(METADATA_ATTR)
     plug.setString(str(data))
 
 
@@ -110,7 +138,7 @@ def getMetaData(node):
     """
     mobject = getMObject(node)
     try:
-        plug = api.MFnDependencyNode(mobject).findPlug(META_ATTR)
+        plug = api.MFnDependencyNode(mobject).findPlug(METADATA_ATTR)
     except RuntimeError:
         return
     else:
@@ -127,10 +155,77 @@ def removeMetaData(node):
     Returns:
         True if meta data was removed
     """
+    result = False
+    # remove meta data
     mobject = getMObject(node)
     mfnnode = api.MFnDependencyNode(mobject)
     try:
-        plug = mfnnode.findPlug(META_ATTR)
+        plug = mfnnode.findPlug(METADATA_ATTR)
+    except RuntimeError:
+        pass
+    else:
+        if not plug.isLocked():
+            mfnnode.removeAttribute(plug.attribute())
+            result = True
+    # remove all meta classes
+    classes = getMetaClasses(node)
+    for c in classes:
+        if removeMetaClass(node, c):
+            result = True
+    return result
+
+
+
+def addMetaClass(node, className):
+    """
+    Add the given meta class type to the given node.
+
+    Args:
+        node: A PyMel node or string node name
+        className: A string representing the meta class type.
+    """
+    attrName = METACLASS_ATTR_PREFIX + className
+    mobject = getMObject(node)
+    mfnnode = api.MFnDependencyNode(mobject)
+    try:
+        mfnnode.attribute(attrName)
+    except RuntimeError:
+        mfnattr = api.MFnNumericAttribute()
+        attr = mfnattr.create(attrName, attrName, api.MFnNumericData.kInt)
+        mfnnode.addAttribute(attr)
+
+
+def getMetaClasses(node):
+    """
+    Return the name of the meta class types that the given
+    node has meta data for.
+
+    Args:
+        node: A PyMel node or string node name
+    """
+    # TODO: implement with api
+    attrs = pm.PyNode(node).listAttr()
+    metaClassAttrs = [a for a in attrs if a.longName().startswith(METACLASS_ATTR_PREFIX)]
+    classes = [a.longName()[len(METACLASS_ATTR_PREFIX):] for a in metaClassAttrs]
+    return classes
+
+
+def removeMetaClass(node, className):
+    """
+    Remove the given class type from the given node.
+
+    Args:
+        node: A PyMel node or string node name
+        className: A string representing the meta class type.
+
+    Returns:
+        True if the class type was removed
+    """
+    attrName = METACLASS_ATTR_PREFIX + className
+    mobject = getMObject(node)
+    mfnnode = api.MFnDependencyNode(mobject)
+    try:
+        plug = mfnnode.findPlug(attrName)
     except RuntimeError:
         pass
     else:
@@ -140,4 +235,35 @@ def removeMetaData(node):
     return False
 
 
+def isMetaNode(node, className=None):
+    """
+    Return True if the given node has meta data, and optionally
+    matches the given class type
+
+    Args:
+        node: A PyMel node or string node name
+        className: A string representing the meta class type.
+            If given, the node must be of this class type.
+    """
+    if className is not None:
+        return hasAttr(node, METACLASS_ATTR_PREFIX + className)
+    else:
+        return hasAttr(node, METADATA_ATTR)
+
+
+def getAllMetaNodes(className=None):
+    """
+    Return a list of all meta nodes of the given class type
+
+    Args:
+        className: A string representing the meta class type.
+            If no class name is given, any node with meta data
+            is returned.
+    """
+    if className is not None:
+        searchStr = '*.' + METACLASS_ATTR_PREFIX + className
+    else:
+        searchStr = '*.' + METADATA_ATTR
+    plugs = getMPlugs([searchStr])
+    return [pm.PyNode(p.node()) for p in plugs]
 
