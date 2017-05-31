@@ -1,8 +1,7 @@
 
 
 import pymel.core as pm
-import pymel.api as api
-import maya.OpenMaya as OpenMaya
+import maya.OpenMaya as api
 
 
 __all__ = [
@@ -11,9 +10,11 @@ __all__ = [
     'getUUID',
     'hasAttr',
     'hasAttrFast',
+    'removeMetaData',
+    'setMetaData',
 ]
 
-META_ATTR = 'pymetadata'
+META_ATTR = 'pyMetaData'
 
 
 def hasAttr(node, attrName):
@@ -24,12 +25,13 @@ def hasAttr(node, attrName):
         node: A MObject, PyMel node, or string representing a node
         attrName: A string name of an attribute to test
     """
-    if isinstance(node, OpenMaya.MObject):
+    if isinstance(node, api.MObject):
         return hasAttrFast(node, attrName)
     elif isinstance(node, pm.nt.DependNode):
         return hasAttrFast(node.__apimobject__(), attrName)
     else:
         return pm.cmds.objExists(node + '.' + attrName)
+
 
 def hasAttrFast(mobject, attrName):
     """
@@ -45,6 +47,7 @@ def hasAttrFast(mobject, attrName):
     except RuntimeError:
         return False
 
+
 def getMObject(nodeName):
     """
     Return the MObject from the scene for the given node name
@@ -58,6 +61,7 @@ def getMObject(nodeName):
     sel.getDependNode(0, node)
     return node
 
+
 def getUUID(nodeName):
     """
     Return the UUID of the given node
@@ -65,12 +69,33 @@ def getUUID(nodeName):
     Args:
         nodeName: A string node name
     """
-    sel = OpenMaya.MSelectionList()
+    sel = api.MSelectionList()
     sel.add(nodeName)
-    node = OpenMaya.MObject()
+    node = api.MObject()
     sel.getDependNode(0, node)
-    val = OpenMaya.MFnDependencyNode(node)
+    val = api.MFnDependencyNode(node)
     return val.uuid().asString()
+
+
+
+def setMetaData(node, data):
+    """
+    Set the meta data for the given node
+
+    Args:
+        node: A PyMel node or string node name
+        data: A python object to serialize and store as meta data
+    """
+    mobject = getMObject(node)
+    mfnnode = api.MFnDependencyNode(mobject)
+    try:
+        plug = mfnnode.findPlug(META_ATTR)
+    except:
+        mfnattr = api.MFnTypedAttribute()
+        attr = mfnattr.create(META_ATTR, META_ATTR, api.MFnData.kString)
+        mfnnode.addAttribute(attr)
+        plug = mfnnode.findPlug(META_ATTR)
+    plug.setString(str(data))
 
 
 def getMetaData(node):
@@ -79,5 +104,40 @@ def getMetaData(node):
 
     Args:
         node: A PyMel node or string node name
+
+    Returns:
+        A python object representing the last stored meta data
     """
-    pass
+    mobject = getMObject(node)
+    try:
+        plug = api.MFnDependencyNode(mobject).findPlug(META_ATTR)
+    except RuntimeError:
+        return
+    else:
+        return plug.asString()
+
+
+def removeMetaData(node):
+    """
+    Remove all meta data from the given node
+
+    Args:
+        node: A PyMel node or string node name
+
+    Returns:
+        True if meta data was removed
+    """
+    mobject = getMObject(node)
+    mfnnode = api.MFnDependencyNode(mobject)
+    try:
+        plug = mfnnode.findPlug(META_ATTR)
+    except RuntimeError:
+        pass
+    else:
+        if not plug.isLocked():
+            mfnnode.removeAttribute(plug.attribute())
+            return True
+    return False
+
+
+
