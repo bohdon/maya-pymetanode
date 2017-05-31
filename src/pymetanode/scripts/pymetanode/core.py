@@ -9,6 +9,7 @@ __all__ = [
     'getAllMetaNodes',
     'getMetaClasses',
     'getMetaData',
+    'getMetaDataForClass',
     'getMObject',
     'getMPlugs',
     'getUUID',
@@ -18,6 +19,7 @@ __all__ = [
     'removeMetaClass',
     'removeMetaData',
     'setMetaData',
+    'setMetaDataForClass',
 ]
 
 
@@ -174,6 +176,41 @@ def removeMetaData(node):
             result = True
     return result
 
+
+def setMetaDataForClass(node, data, className):
+    """
+    Set the meta data for a node specific a meta class.
+    This leaves meta data from other potential meta classes in tact
+    by ensuring the data is wrapped in a dictionary indexed
+    by class name.
+
+    Args:
+        node: A PyMel node or string node name
+        data: A python object to serialize and store as meta data
+        className: A string representing the meta class type.
+    """
+    # build data
+    fullData = {className: data}
+    existingData = getMetaData(node)
+    if existingData:
+        # TODO: update full data with existing
+        pass
+    # add class and set data
+    addMetaClass(node, className)
+    setMetaData(node, fullData)
+
+def getMetaDataForClass(node, className):
+    """
+    Return the only the meta data for the a meta class type
+    from a node.
+
+    Args:
+        node: A PyMel node or string node name
+        className: A string representing the meta class type.
+    """
+    data = getMetaData(node)
+    # TODO: parse data
+    # return data.get(className, None)
 
 
 def addMetaClass(node, className):
