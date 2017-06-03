@@ -51,7 +51,7 @@ def getMObject(nodeName):
         nodeName: A string node name
     """
     sel = api.MSelectionList()
-    sel.add(nodeName)
+    sel.add(str(nodeName))
     node = api.MObject()
     sel.getDependNode(0, node)
     return node
