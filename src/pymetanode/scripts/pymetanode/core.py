@@ -24,6 +24,34 @@ METACLASS_ATTR_PREFIX = 'pyMetaClass_'
 METADATA_ATTR = 'pyMetaData'
 
 
+def _getMetaDataPlug(mfnnode):
+    """
+    Return the MPlug for the meta data attribute on a node
+
+    Args:
+        mfnnode: A MFnDependencyNode referencing the target node.
+    """
+    try:
+        return mfnnode.findPlug(METADATA_ATTR)
+    except RuntimeError:
+        pass
+
+
+def _getMetaClassPlug(mfnnode, className):
+    """
+    Return the MPlug for a meta class attribute on a node
+
+    Args:
+        mfnnode: A MFnDependencyNode referencing the target node.
+        className: A string name of the meta class type.
+    """
+    attrName = METACLASS_ATTR_PREFIX + className
+    try:
+        return mfnnode.findPlug(attrName)
+    except RuntimeError:
+        pass
+
+
 def encodeMetaData(data):
     """
     Return the given meta data encoded into a string
@@ -43,6 +71,8 @@ def decodeMetaData(data):
     Args:
         data: A string representing encoded meta data.
     """
+    if not data:
+        return {}
     try:
         return ast.literal_eval(data.replace('\r', ''))
     except SyntaxError as e:
@@ -163,38 +193,48 @@ def removeMetaData(node, className=None):
     if not isMetaNode(node):
         return True
 
-    mfnnode = api.MFnDependencyNode(getMObject(node))
-    dataRemaining = False
+    mfnnode = api.MFnDependencyNode(utils.getMObject(node))
 
     if className is not None:
-        classAttr = METACLASS_ATTR_PREFIX + className
-        # remove meta class attr
-        if not _removeMetaClass(node, className):
-            dataRemaining = True
         # remove meta data for the given class only
+
+        # make sure data attribute is unlocked
+        dataPlug = _getMetaDataPlug(mfnnode)
+        if dataPlug and dataPlug.isLocked():
+            return False
+
+        # make sure class attribute is unlocked
+        classPlug = _getMetaClassPlug(mfnnode, className)
+        if classPlug and classPlug.isLocked():
+            return False
+
         data = decodeMetaData(plug.asString())
         if className in data:
             del data[className]
             plug.setString(encodeMetaData(data))
 
     else:
-        # remove all meta class attrs
-        classes = getMetaClasses(node)
-        for c in classes:
-            if not _removeMetaClass(node, c):
-                dataRemaining = True
-        # remove meta data attribute
-        try:
-            plug = mfnnode.findPlug(METADATA_ATTR)
-        except RuntimeError:
-            pass
-        else:
-            if not plug.isLocked():
-                mfnnode.removeAttribute(plug.attribute())
-            else:
-                dataRemaining = True
+        # remove all meta data from the node
+
+        # make sure data attribute is unlocked
+        dataPlug = _getMetaDataPlug(mfnnode)
+        if dataPlug and dataPlug.isLocked():
+            return False
+
+        # make sure all class attributes are unlocked
+        classPlugs = [_getMetaClassPlug(mfnnode, c) for c in getMetaClasses(node)]
+        for cp in classPlugs:
+            if cp and cp.isLocked():
+                return False
+
+        # remove all attributes
+        if dataPlug:
+            mfnnode.removeAttribute(dataPlug.attribute())
+        for cp in classPlugs:
+            if cp:
+                mfnnode.removeAttribute(cp.attribute())
     
-    return not dataRemaining
+    return True
 
 
 def getMetaClasses(node):
@@ -211,29 +251,5 @@ def getMetaClasses(node):
     classes = [a.longName()[len(METACLASS_ATTR_PREFIX):] for a in metaClassAttrs]
     return classes
 
-
-def _removeMetaClass(node, className):
-    """
-    Remove the a meta class type from a node.
-
-    Args:
-        node: A PyMel node or string node name
-        className: A string name of the meta class type.
-
-    Returns:
-        True if node is fully clean of the meta class type.
-    """
-    attrName = METACLASS_ATTR_PREFIX + className
-    mfnnode = api.MFnDependencyNode(getMObject(node))
-    try:
-        plug = mfnnode.findPlug(attrName)
-    except RuntimeError:
-        return True
-    else:
-        if not plug.isLocked():
-            mfnnode.removeAttribute(plug.attribute())
-        else:
-            return False
-    return True
 
 
