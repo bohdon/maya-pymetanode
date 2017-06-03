@@ -10,7 +10,7 @@ import utils
 __all__ = [
     'decodeMetaData',
     'encodeMetaData',
-    'getAllMetaNodes',
+    'findMetaNodes',
     'getMetaClasses',
     'getMetaData',
     'hasMetaClass',
@@ -103,14 +103,13 @@ def hasMetaClass(node, className):
     return utils.hasAttr(node, METACLASS_ATTR_PREFIX + className)
 
 
-def getAllMetaNodes(className=None):
+def findMetaNodes(className=None):
     """
-    Return a list of all meta nodes of the given class type
+    Return a list of all meta nodes of the given class type.
+    If no class is given, all nodes with meta data are returned.
 
     Args:
         className: A string name of the meta class type.
-            If no class name is given, any node with meta data
-            is returned.
     """
     if className is not None:
         searchStr = '*.' + METACLASS_ATTR_PREFIX + className
