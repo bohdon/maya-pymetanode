@@ -33,6 +33,11 @@ dev() {
     link `pwd`/src/$PACKAGE_NAME $MAYA_MODULES_INSTALL_PATH/$PACKAGE_NAME
 }
 
+test() {
+    build
+    mayapy tests
+}
+
 install() {
     uninstall
     clean
@@ -47,7 +52,7 @@ uninstall() {
 }
 
 
-ALL_COMMANDS="build, clean, dev, install, uninstall"
+ALL_COMMANDS="build, clean, dev, test, install, uninstall"
 
 
 
