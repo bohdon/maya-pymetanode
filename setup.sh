@@ -35,7 +35,7 @@ dev() {
 
 test() {
     build
-    mayapy tests
+    mayapy tests build/$PACKAGE_NAME
 }
 
 install() {

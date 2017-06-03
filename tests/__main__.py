@@ -4,6 +4,7 @@ import os
 import unittest
 import maya.standalone
 
+
 def updateSysPaths():
     """
     Update sys.path to contain any missing script paths
@@ -27,6 +28,10 @@ def run_tests():
 def main():
     maya.standalone.initialize()
     updateSysPaths()
+    # insert the package to test at beginning of sys path in
+    # case its already installed in maya modules path
+    moduleScripts = os.path.join(sys.argv[1], 'scripts')
+    sys.path.insert(0, os.path.abspath(moduleScripts))
     run_tests()
 
 
