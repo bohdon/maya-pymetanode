@@ -119,14 +119,14 @@ def findMetaNodes(className=None):
     return [pm.PyNode(p.node()) for p in plugs]
 
 
-def setMetaData(node, data, className):
+def setMetaData(node, className, data):
     """
     Set the meta data for the a meta class type on a node.
 
     Args:
         node: A PyMel node or string node name
-        data: A python object to serialize and store as meta data
         className: A string name of the meta class type.
+        data: A python object to serialize and store as meta data
     """
     # get meta data plug
     mfnnode = api.MFnDependencyNode(utils.getMObject(node))
