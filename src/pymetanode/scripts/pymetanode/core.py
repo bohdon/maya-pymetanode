@@ -114,11 +114,11 @@ def findMetaNodes(className=None):
         className: A string name of the meta class type.
     """
     if className is not None:
-        searchStr = '*.' + METACLASS_ATTR_PREFIX + className
+        plugName = METACLASS_ATTR_PREFIX + className
     else:
-        searchStr = '*.' + METADATA_ATTR
-    plugs = utils.getMPlugs([searchStr])
-    return [pm.PyNode(p.node()) for p in plugs]
+        plugName = METADATA_ATTR
+    objs = utils.getMObjectsByPlug(plugName)
+    return [pm.PyNode(o) for o in objs]
 
 
 def setMetaData(node, className, data):
@@ -131,7 +131,7 @@ def setMetaData(node, className, data):
         data: A python object to serialize and store as meta data
     """
     # get meta data plug
-    mfnnode = api.MFnDependencyNode(utils.getMObject(node))
+    mfnnode = utils.getMFnDependencyNode(node)
     try:
         plug = mfnnode.findPlug(METADATA_ATTR)
     except:
@@ -167,9 +167,9 @@ def getMetaData(node, className=None):
     Returns:
         A dict or python object representing the stored meta data
     """
-    mobject = utils.getMObject(node)
+    mfnnode = utils.getMFnDependencyNode(node)
     try:
-        plug = api.MFnDependencyNode(mobject).findPlug(METADATA_ATTR)
+        plug = mfnnode.findPlug(METADATA_ATTR)
         datastr = plug.asString()
     except RuntimeError:
         return
@@ -196,7 +196,7 @@ def removeMetaData(node, className=None):
     if not isMetaNode(node):
         return True
 
-    mfnnode = api.MFnDependencyNode(utils.getMObject(node))
+    mfnnode = utils.getMFnDependencyNode(node)
 
     if className is not None:
         # remove meta data for the given class only
@@ -248,10 +248,9 @@ def getMetaClasses(node):
     Args:
         node: A PyMel node or string node name
     """
-    # TODO: implement with api
-    attrs = pm.PyNode(node).listAttr()
-    metaClassAttrs = [a for a in attrs if a.longName().startswith(METACLASS_ATTR_PREFIX)]
-    classes = [a.longName()[len(METACLASS_ATTR_PREFIX):] for a in metaClassAttrs]
+    attrs = pm.cmds.listAttr(str(node))
+    metaClassAttrs = [a for a in attrs if a.startswith(METACLASS_ATTR_PREFIX)]
+    classes = [a[len(METACLASS_ATTR_PREFIX):] for a in metaClassAttrs]
     return classes
 
 

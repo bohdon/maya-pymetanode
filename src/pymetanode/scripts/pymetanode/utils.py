@@ -5,7 +5,8 @@ import maya.OpenMaya as api
 
 __all__ = [
     'getMObject',
-    'getMPlugs',
+    'getMObjectsByPlug',
+    'getMFnDependencyNode',
     'getUUID',
     'hasAttr',
     'hasAttrFast',
@@ -43,51 +44,72 @@ def hasAttrFast(mobject, attrName):
         return False
 
 
-def getMObject(nodeName):
+def getMObject(node):
     """
-    Return the MObject from the scene for the given node name
+    Return the MObject for a node
 
     Args:
-        nodeName: A string node name
+        node: A PyNode or node name
     """
-    sel = api.MSelectionList()
-    sel.add(str(nodeName))
-    node = api.MObject()
-    sel.getDependNode(0, node)
-    return node
+    if isinstance(node, pm.nt.DependNode):
+        return node.__apimobject__()
+    else:
+        sel = api.MSelectionList()
+        sel.add(node)
+        mobj = api.MObject()
+        sel.getDependNode(0, mobj)
+        return mobj
 
 
-def getMPlugs(matchStrings):
+def getMObjectsByPlug(plugName):
     """
-    Return all MPlugs in the scene that match the given match strings.
+    Return all dependency nodes in the scene that have a specific plug.
 
     Args:
-        matchStrings: A list of `ls` command style strings that must
-            include an attribute, e.g. `*.pyMetaData`
+        plugName: A string name of a maya plug to search for on nodes
     """
     sel = api.MSelectionList()
-    for s in matchStrings:
-        try:
-            sel.add(s)
-        except:
-            pass
+    try:
+        sel.add('*.' + plugName)
+    except:
+        pass
     count = sel.length()
-    result = [api.MPlug() for i in range(count)]
-    [sel.getPlug(i, result[i]) for i in range(count)]
+    result = [api.MObject() for i in range(count)]
+    [sel.getDependNode(i, result[i]) for i in range(count)]
     return result
 
 
-def getUUID(nodeName):
+def getMFnDependencyNode(node):
+    """
+    Return an MFnDependencyNode for a node
+
+    Args:
+        node: A PyNode or string node name
+    """
+    if isinstance(node, api.MObject):
+        return api.MFnDependencyNode(node)
+    elif isinstance(node, pm.nt.DependNode):
+        return node.__apimfn__()
+    else:
+        return api.MFnDependencyNode(getMObject(node))
+
+
+def getUUID(node):
     """
     Return the UUID of the given node
 
     Args:
-        nodeName: A string node name
+        node: A string node name
     """
-    sel = api.MSelectionList()
-    sel.add(nodeName)
-    node = api.MObject()
-    sel.getDependNode(0, node)
-    val = api.MFnDependencyNode(node)
-    return val.uuid().asString()
+    if isinstance(node, api.MObject):
+        mfnnode = api.MFnDependencyNode(node)
+    elif isinstance(node, pm.nt.DependNode):
+        mfnnode = node.__apimfn__()
+    else:
+        sel = api.MSelectionList()
+        sel.add(node)
+        mobj = api.MObject()
+        sel.getDependNode(0, mobj)
+        mfnnode = api.MFnDependencyNode(mobj)
+    return mfnnode.uuid().asString()
 
