@@ -1,5 +1,6 @@
 
 import ast
+import re
 
 import pymel.core as pm
 import maya.OpenMaya as api
@@ -23,6 +24,7 @@ __all__ = [
 METACLASS_ATTR_PREFIX = 'pyMetaClass_'
 METADATA_ATTR = 'pyMetaData'
 
+VALID_CLASSATTR = re.compile(r'^[_a-z0-9]*$', re.IGNORECASE)
 
 def _getMetaDataPlug(mfnnode):
     """
@@ -138,6 +140,8 @@ def setMetaData(node, className, data):
         mfnnode.addAttribute(attr)
         plug = mfnnode.findPlug(METADATA_ATTR)
     # ensure node has meta class type attribute
+    if not VALID_CLASSATTR.match(className):
+        raise ValueError('Invalid meta class name: ' + className)
     classAttr = METACLASS_ATTR_PREFIX + className
     try:
         mfnnode.attribute(classAttr)
