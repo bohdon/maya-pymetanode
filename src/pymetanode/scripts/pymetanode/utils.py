@@ -1,16 +1,22 @@
 
+import re
 import pymel.core as pm
 import maya.OpenMaya as api
 
 
 __all__ = [
+    'getMFnDependencyNode',
     'getMObject',
     'getMObjectsByPlug',
-    'getMFnDependencyNode',
     'getUUID',
     'hasAttr',
     'hasAttrFast',
+    'isNode',
+    'isUUID',
 ]
+
+
+VALID_UUID = re.compile('^[A-F0-9]{8}-([A-F0-9]{4}-){3}[A-F0-9]{12}$')
 
 
 def hasAttr(node, attrName):
@@ -93,13 +99,27 @@ def getMFnDependencyNode(node):
     else:
         return api.MFnDependencyNode(getMObject(node))
 
+def isNode(obj):
+    """
+    Returns whether an object represents a Maya node
+    """
+    if isinstance(obj, api.MObject) or isinstance(obj, pm.PyNode):
+        return True
+    elif isinstance(obj, basestring):
+        return isUUID(obj) or pm.cmds.objExists(obj)
+
+def isUUID(obj):
+    """
+    Returns whether an object is a valid UUID
+    """
+    return isinstance(obj, basestring) and VALID_UUID.match(obj)
 
 def getUUID(node):
     """
     Return the UUID of the given node
 
     Args:
-        node: A string node name
+        node: A MObject, pymel node, or node name
     """
     if isinstance(node, api.MObject):
         mfnnode = api.MFnDependencyNode(node)

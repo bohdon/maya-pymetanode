@@ -10,7 +10,9 @@ import utils
 
 __all__ = [
     'decodeMetaData',
+    'decodeMetaDataValue',
     'encodeMetaData',
+    'encodeMetaDataValue',
     'findMetaNodes',
     'getMetaClasses',
     'getMetaData',
@@ -62,7 +64,27 @@ def encodeMetaData(data):
         data: A python dictionary-like object representing
             the data to serialize.
     """
-    return str(data)
+    return str(encodeMetaDataValue(data))
+
+def encodeMetaDataValue(value):
+    """
+    Encode and return a meta data value. Handles special
+    data types like Maya nodes.
+
+    Args:
+        value: Any python value to be encoded
+    """
+    if isinstance(value, dict):
+        result = {}
+        for k, v in value.iteritems():
+            result[k] = encodeMetaDataValue(v)
+        return result
+    elif isinstance(value, (list, tuple)):
+        return value.__class__([encodeMetaDataValue(v) for v in value])
+    elif utils.isNode(value):
+        return utils.getUUID(value)
+    else:
+        return value
 
 
 def decodeMetaData(data):
@@ -76,11 +98,35 @@ def decodeMetaData(data):
     if not data:
         return {}
     try:
-        return ast.literal_eval(data.replace('\r', ''))
+        # convert from string to python object
+        data = ast.literal_eval(data.replace('\r', ''))
     except SyntaxError as e:
         print("Failed to parse meta data, invalid syntax: {0}".format(e))
         return {}
+    else:
+        return decodeMetaDataValue(data)
 
+def decodeMetaDataValue(value):
+    """
+    Parse string formatted meta data and return the
+    resulting python object.
+
+    Args:
+        data: A str representing encoded meta data
+    """
+    if isinstance(value, dict):
+        result = {}
+        for k, v in value.iteritems():
+            result[k] = decodeMetaDataValue(v)
+        return result
+    elif isinstance(value, (list, tuple)):
+        return value.__class__([decodeMetaDataValue(v) for v in value])
+    elif utils.isUUID(value):
+        nodes = pm.ls(value)
+        if nodes:
+            return nodes[0]
+    else:
+        return value
 
 
 def isMetaNode(node):
