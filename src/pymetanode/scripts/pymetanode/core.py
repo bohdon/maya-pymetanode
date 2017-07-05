@@ -20,6 +20,7 @@ __all__ = [
     'isMetaNode',
     'removeMetaData',
     'setMetaData',
+    'updateMetaData',
 ]
 
 
@@ -225,6 +226,23 @@ def getMetaData(node, className=None):
             return data.get(className, None)
         else:
             return data
+
+
+def updateMetaData(node, className, data):
+    """
+    Updates existing meta data on a node for a meta class type.
+    Only supports dict-type meta data
+
+    Args:
+        node: A PyMel node or string node name
+        className: A string name of the meta class type
+        data: A dict object containing meta data to add to the node
+    """
+    fullData = getMetaData(node, className)
+    if not isinstance(fullData, dict):
+        raise ValueError("meta data for node '{0}' is not a dict and cannot be updated".format(node))
+    fullData.update(data)
+    setMetaData(node, className, fullData)
 
 
 def removeMetaData(node, className=None):
