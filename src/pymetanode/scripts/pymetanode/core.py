@@ -82,7 +82,7 @@ def encodeMetaDataValue(value):
         return result
     elif isinstance(value, (list, tuple)):
         return value.__class__([encodeMetaDataValue(v) for v in value])
-    elif utils.isNode(value):
+    elif isinstance(value, pm.nt.DependNode):
         return utils.getUUID(value)
     else:
         return value
