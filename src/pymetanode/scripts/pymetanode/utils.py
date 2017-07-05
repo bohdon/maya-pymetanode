@@ -133,3 +133,20 @@ def getUUID(node):
         mfnnode = api.MFnDependencyNode(mobj)
     return mfnnode.uuid().asString()
 
+def findNodeByUUID(uuid, refNode=None):
+    """
+    Args:
+        uuid: A string UUID representing the node
+        refNode: A string name of the reference node
+            that the node should be associated with
+    """
+    nodes = pm.ls(uuid)
+    if refNode:
+        # filter result by nodes from the same reference file
+        for n in nodes:
+            if pm.cmds.referenceQuery(str(n), isNodeReferenced=True):
+                if pm.cmds.referenceQuery(str(n), rfn=True) == refNode:
+                    return n
+    elif nodes:
+        # take the first result
+        return nodes[0]

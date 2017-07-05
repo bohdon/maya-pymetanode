@@ -88,7 +88,7 @@ def encodeMetaDataValue(value):
         return value
 
 
-def decodeMetaData(data):
+def decodeMetaData(data, refNode=None):
     """
     Parse the given meta data and return it as a valid
     python object.
@@ -105,9 +105,9 @@ def decodeMetaData(data):
         print("Failed to parse meta data, invalid syntax: {0}".format(e))
         return {}
     else:
-        return decodeMetaDataValue(data)
+        return decodeMetaDataValue(data, refNode)
 
-def decodeMetaDataValue(value):
+def decodeMetaDataValue(value, refNode):
     """
     Parse string formatted meta data and return the
     resulting python object.
@@ -118,14 +118,12 @@ def decodeMetaDataValue(value):
     if isinstance(value, dict):
         result = {}
         for k, v in value.iteritems():
-            result[k] = decodeMetaDataValue(v)
+            result[k] = decodeMetaDataValue(v, refNode)
         return result
     elif isinstance(value, (list, tuple)):
-        return value.__class__([decodeMetaDataValue(v) for v in value])
+        return value.__class__([decodeMetaDataValue(v, refNode) for v in value])
     elif utils.isUUID(value):
-        nodes = pm.ls(value)
-        if nodes:
-            return nodes[0]
+        return utils.findNodeByUUID(value, refNode)
     else:
         return value
 
@@ -197,7 +195,10 @@ def setMetaData(node, className, data):
         attr = mfnattr.create(classAttr, classAttr, api.MFnNumericData.kInt)
         mfnnode.addAttribute(attr)
     # update meta data
-    fullData = decodeMetaData(plug.asString())
+    refNode = None
+    if pm.cmds.referenceQuery(str(node), isNodeReferenced=True):
+        refNode = pm.cmds.referenceQuery(str(node), rfn=True)
+    fullData = decodeMetaData(plug.asString(), refNode)
     fullData[className] = data
     plug.setString(encodeMetaData(fullData))
 
@@ -221,7 +222,10 @@ def getMetaData(node, className=None):
     except RuntimeError:
         return
     else:
-        data = decodeMetaData(datastr)
+        refNode = None
+        if pm.cmds.referenceQuery(str(node), isNodeReferenced=True):
+            refNode = pm.cmds.referenceQuery(str(node), rfn=True)
+        data = decodeMetaData(datastr, refNode)
         if className is not None:
             return data.get(className, None)
         else:
