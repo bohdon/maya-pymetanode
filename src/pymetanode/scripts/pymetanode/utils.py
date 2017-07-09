@@ -61,7 +61,11 @@ def getMObject(node):
         return node.__apimobject__()
     else:
         sel = api.MSelectionList()
-        sel.add(node)
+        try:
+            sel.add(node)
+        except:
+            # node does not exist or invalid arg
+            return
         mobj = api.MObject()
         sel.getDependNode(0, mobj)
         return mobj
@@ -95,9 +99,12 @@ def getMFnDependencyNode(node):
     if isinstance(node, api.MObject):
         return api.MFnDependencyNode(node)
     elif isinstance(node, pm.nt.DependNode):
-        return node.__apimfn__()
+        if node.exists():
+            return node.__apimfn__()
     else:
-        return api.MFnDependencyNode(getMObject(node))
+        mobj = getMObject(node)
+        if mobj:
+            return api.MFnDependencyNode(mobj)
 
 def isNode(obj):
     """
@@ -121,17 +128,9 @@ def getUUID(node):
     Args:
         node: A MObject, pymel node, or node name
     """
-    if isinstance(node, api.MObject):
-        mfnnode = api.MFnDependencyNode(node)
-    elif isinstance(node, pm.nt.DependNode):
-        mfnnode = node.__apimfn__()
-    else:
-        sel = api.MSelectionList()
-        sel.add(node)
-        mobj = api.MObject()
-        sel.getDependNode(0, mobj)
-        mfnnode = api.MFnDependencyNode(mobj)
-    return mfnnode.uuid().asString()
+    mfnnode = getMFnDependencyNode(node)
+    if mfnnode:
+        return mfnnode.uuid().asString()
 
 def findNodeByUUID(uuid, refNode=None):
     """
