@@ -98,14 +98,12 @@ def decodeMetaData(data, refNode=None):
     """
     if not data:
         return {}
+    # convert from string to python object
     try:
-        # convert from string to python object
         data = ast.literal_eval(data.replace('\r', ''))
-    except SyntaxError as e:
-        print("Failed to parse meta data, invalid syntax: {0}".format(e))
-        return {}
-    else:
-        return decodeMetaDataValue(data, refNode)
+    except Exception as e:
+        raise ValueError("Failed to decode meta data: {0}".format(e))
+    return decodeMetaDataValue(data, refNode)
 
 def decodeMetaDataValue(value, refNode):
     """
