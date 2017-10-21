@@ -67,9 +67,9 @@ link() {
         # determine if the link is a directory
         # also convert '/' to '\'
         if [[ -d "$1" ]]; then
-            cmd <<< "mklink /D \"`cygpath -w $2`\" \"`cygpath -w $1`\"" > /dev/null
+            cmd <<< "mklink /D \"`cygpath -w \"$2\"`\" \"`cygpath -w \"$1\"`\"" > /dev/null
         else
-            cmd <<< "mklink \"`cygpath -w $2`\" \"`cygpath -w $1`\"" > /dev/null
+            cmd <<< "mklink \"`cygpath -w \"$2\"`\" \"`cygpath -w \"$1\"`\"" > /dev/null
         fi
     else
         ln -sf "$1" "$2"
