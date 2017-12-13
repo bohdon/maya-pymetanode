@@ -51,3 +51,6 @@ docs/_build/
 .venv
 venv/
 ENV/
+
+# Project files
+.vscode/
