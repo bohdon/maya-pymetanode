@@ -64,3 +64,6 @@ meta.findMetaNodes('MyMetaClass')
 
 The implementation is very simple: python data is serialized into a string that is stored on a Maya node, and deserialized using `eval` when retrieved. Each 'meta class' type adds an additional attribute on the node that is used to perform fast searching for nodes. Data goes through a basic encoding and decoding that allows node references and other potential future features.
 
+
+## Version 1.0.0 (2017-12-19)
+- Initial release
