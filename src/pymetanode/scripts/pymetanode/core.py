@@ -3,6 +3,7 @@ import ast
 import re
 
 import pymel.core as pm
+import maya.cmds as cmds
 import maya.OpenMaya as api
 
 import utils
@@ -148,23 +149,28 @@ def hasMetaClass(node, className):
     return utils.hasAttr(node, METACLASS_ATTR_PREFIX + className)
 
 
-def findMetaNodes(className=None):
+def findMetaNodes(className=None, asPyNodes=True):
     """
     Return a list of all meta nodes of the given class type.
     If no class is given, all nodes with meta data are returned.
 
     Args:
         className: A string name of the meta class type.
+        asPyNodes: A bool, when True, returns a list of PyNodes,
+            otherwise returns a list of MObjects
     """
     if className is not None:
         plugName = METACLASS_ATTR_PREFIX + className
     else:
         plugName = METADATA_ATTR
     objs = utils.getMObjectsByPlug(plugName)
-    return [pm.PyNode(o) for o in objs]
+    if asPyNodes:
+        return [pm.PyNode(o) for o in objs]
+    else:
+        return objs
 
 
-def setMetaData(node, className, data):
+def setMetaData(node, className, data, undoable=True):
     """
     Set the meta data for the a meta class type on a node.
 
@@ -172,16 +178,21 @@ def setMetaData(node, className, data):
         node: A PyMel node or string node name
         className: A string name of the meta class type.
         data: A python object to serialize and store as meta data
+        undoable: A bool, when True the change will be undoable
     """
     # get meta data plug
     mfnnode = utils.getMFnDependencyNode(node)
     try:
         plug = mfnnode.findPlug(METADATA_ATTR)
     except:
-        mfnattr = api.MFnTypedAttribute()
-        attr = mfnattr.create(METADATA_ATTR, METADATA_ATTR, api.MFnData.kString)
-        mfnnode.addAttribute(attr)
+        if undoable:
+            cmds.addAttr(mfnnode.name(), ln=METADATA_ATTR, dt='string')
+        else:
+            mfnattr = api.MFnTypedAttribute()
+            attr = mfnattr.create(METADATA_ATTR, METADATA_ATTR, api.MFnData.kString)
+            mfnnode.addAttribute(attr)
         plug = mfnnode.findPlug(METADATA_ATTR)
+
     # ensure node has meta class type attribute
     if not VALID_CLASSATTR.match(className):
         raise ValueError('Invalid meta class name: ' + className)
@@ -189,16 +200,25 @@ def setMetaData(node, className, data):
     try:
         mfnnode.attribute(classAttr)
     except RuntimeError:
-        mfnattr = api.MFnNumericAttribute()
-        attr = mfnattr.create(classAttr, classAttr, api.MFnNumericData.kInt)
-        mfnnode.addAttribute(attr)
+        if undoable:
+            cmds.addAttr(mfnnode.name(), ln=classAttr, at='short')
+        else:
+            mfnattr = api.MFnNumericAttribute()
+            attr = mfnattr.create(classAttr, classAttr, api.MFnNumericData.kShort)
+            mfnnode.addAttribute(attr)
+
     # update meta data
     refNode = None
-    if pm.cmds.referenceQuery(str(node), isNodeReferenced=True):
-        refNode = pm.cmds.referenceQuery(str(node), rfn=True)
+    if cmds.referenceQuery(str(node), isNodeReferenced=True):
+        refNode = cmds.referenceQuery(str(node), rfn=True)
     fullData = decodeMetaData(plug.asString(), refNode)
     fullData[className] = data
-    plug.setString(encodeMetaData(fullData))
+    newValue = encodeMetaData(fullData)
+
+    if undoable:
+        cmds.setAttr(plug.name(), newValue, type='string')
+    else:
+        plug.setString(newValue)
 
 
 def getMetaData(node, className=None):
@@ -221,8 +241,8 @@ def getMetaData(node, className=None):
         return
     else:
         refNode = None
-        if pm.cmds.referenceQuery(str(node), isNodeReferenced=True):
-            refNode = pm.cmds.referenceQuery(str(node), rfn=True)
+        if cmds.referenceQuery(str(node), isNodeReferenced=True):
+            refNode = cmds.referenceQuery(str(node), rfn=True)
         data = decodeMetaData(datastr, refNode)
         if className is not None:
             return data.get(className, None)
@@ -247,7 +267,7 @@ def updateMetaData(node, className, data):
     setMetaData(node, className, fullData)
 
 
-def removeMetaData(node, className=None):
+def removeMetaData(node, className=None, undoable=True):
     """
     Remove meta data from a node. If no `className` is given
     then all meta data is removed.
@@ -255,6 +275,7 @@ def removeMetaData(node, className=None):
     Args:
         node: A PyMel node or string node name
         className: A string name of the meta class type.
+        undoable: A bool, when True the change will be undoable
 
     Returns:
         True if node is fully clean of relevant meta data.
@@ -280,7 +301,12 @@ def removeMetaData(node, className=None):
         data = decodeMetaData(plug.asString())
         if className in data:
             del data[className]
-            plug.setString(encodeMetaData(data))
+            newValue = encodeMetaData(data)
+
+            if undoable:
+                cmds.setAttr(plug.name(), newValue, type='string')
+            else:
+                plug.setString(newValue)
 
     else:
         # remove all meta data from the node
@@ -298,10 +324,16 @@ def removeMetaData(node, className=None):
 
         # remove all attributes
         if dataPlug:
-            mfnnode.removeAttribute(dataPlug.attribute())
-        for cp in classPlugs:
-            if cp:
-                mfnnode.removeAttribute(cp.attribute())
+            if undoable:
+                cmds.deleteAttr(dataPlug.name())
+            else:
+                mfnnode.removeAttribute(dataPlug.attribute())
+        for classPlug in classPlugs:
+            if classPlug:
+                if undoable:
+                    cmds.deleteAttr(classPlug.name())
+                else:
+                    mfnnode.removeAttribute(classPlug.attribute())
     
     return True
 
@@ -314,7 +346,7 @@ def getMetaClasses(node):
     Args:
         node: A PyMel node or string node name
     """
-    attrs = pm.cmds.listAttr(str(node))
+    attrs = cmds.listAttr(str(node))
     metaClassAttrs = [a for a in attrs if a.startswith(METACLASS_ATTR_PREFIX)]
     classes = [a[len(METACLASS_ATTR_PREFIX):] for a in metaClassAttrs]
     return classes
