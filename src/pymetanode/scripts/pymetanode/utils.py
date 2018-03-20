@@ -5,6 +5,7 @@ import maya.OpenMaya as api
 
 
 __all__ = [
+    'findNodeByUUID',
     'getMFnDependencyNode',
     'getMObject',
     'getMObjectsByPlug',
