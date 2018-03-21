@@ -288,52 +288,62 @@ def removeMetaData(node, className=None, undoable=True):
     if className is not None:
         # remove meta data for the given class only
 
+        # make sure class attribute is unlocked
+        classPlug = _getMetaClassPlug(mfnnode, className)
+        if classPlug and classPlug.isLocked():
+            return False
+        
         # make sure data attribute is unlocked
         dataPlug = _getMetaDataPlug(mfnnode)
         if dataPlug and dataPlug.isLocked():
             return False
 
-        # make sure class attribute is unlocked
-        classPlug = _getMetaClassPlug(mfnnode, className)
-        if classPlug and classPlug.isLocked():
-            return False
+        # remove class attribute
+        if classPlug:
+            if undoable:
+                cmds.deleteAttr(classPlug.name())
+            else:
+                mfnnode.removeAttribute(classPlug.attribute())
 
-        data = decodeMetaData(plug.asString())
+        # remove class data
+        data = decodeMetaData(dataPlug.asString())
         if className in data:
             del data[className]
             newValue = encodeMetaData(data)
 
             if undoable:
-                cmds.setAttr(plug.name(), newValue, type='string')
+                cmds.setAttr(dataPlug.name(), newValue, type='string')
             else:
-                plug.setString(newValue)
+                dataPlug.setString(newValue)
 
     else:
         # remove all meta data from the node
-
-        # make sure data attribute is unlocked
-        dataPlug = _getMetaDataPlug(mfnnode)
-        if dataPlug and dataPlug.isLocked():
-            return False
 
         # make sure all class attributes are unlocked
         classPlugs = [_getMetaClassPlug(mfnnode, c) for c in getMetaClasses(node)]
         for cp in classPlugs:
             if cp and cp.isLocked():
                 return False
+        
+        # make sure data attribute is unlocked
+        dataPlug = _getMetaDataPlug(mfnnode)
+        if dataPlug and dataPlug.isLocked():
+            return False
 
-        # remove all attributes
-        if dataPlug:
-            if undoable:
-                cmds.deleteAttr(dataPlug.name())
-            else:
-                mfnnode.removeAttribute(dataPlug.attribute())
+        # remove class attributes
         for classPlug in classPlugs:
             if classPlug:
                 if undoable:
                     cmds.deleteAttr(classPlug.name())
                 else:
                     mfnnode.removeAttribute(classPlug.attribute())
+        
+        # remove data attribute
+        if dataPlug:
+            if undoable:
+                cmds.deleteAttr(dataPlug.name())
+            else:
+                mfnnode.removeAttribute(dataPlug.attribute())
     
     return True
 

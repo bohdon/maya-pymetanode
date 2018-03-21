@@ -39,6 +39,15 @@ class TestMetaData(unittest.TestCase):
         self.assertFalse(result)
         data = meta.getMetaData(self.node)
         self.assertEqual(data, {'myMetaClass': 'myTestData'})
+    
+    def test_removeClassData(self):
+        meta.setMetaData(self.node, 'myMetaClass', None)
+        meta.setMetaData(self.node, 'mySecondMetaClass', None)
+        result = meta.removeMetaData(self.node, 'myMetaClass')
+        self.assertTrue(result)
+        self.assertTrue(meta.isMetaNode(self.node))
+        self.assertFalse(meta.hasMetaClass(self.node, 'myMetaClass'))
+        self.assertTrue(meta.hasMetaClass(self.node, 'mySecondMetaClass'))
 
     def test_removeLockedClass(self):
         meta.setMetaData(self.node, 'myMetaClass', 'myTestData')
