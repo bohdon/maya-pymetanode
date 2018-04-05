@@ -285,6 +285,10 @@ def removeMetaData(node, className=None, undoable=True):
 
     mfnnode = utils.getMFnDependencyNode(node)
 
+    # this may become true if we find there are no
+    # classes left after removing one
+    removeAllData = False
+
     if className is not None:
         # remove meta data for the given class only
 
@@ -292,7 +296,7 @@ def removeMetaData(node, className=None, undoable=True):
         classPlug = _getMetaClassPlug(mfnnode, className)
         if classPlug and classPlug.isLocked():
             return False
-        
+
         # make sure data attribute is unlocked
         dataPlug = _getMetaDataPlug(mfnnode)
         if dataPlug and dataPlug.isLocked():
@@ -316,7 +320,15 @@ def removeMetaData(node, className=None, undoable=True):
             else:
                 dataPlug.setString(newValue)
 
+        # check if any classes left
+        if len(data) == 0:
+            removeAllData = True
+
     else:
+        # no className was given
+        removeAllData = True
+
+    if removeAllData:
         # remove all meta data from the node
 
         # make sure all class attributes are unlocked
@@ -324,7 +336,7 @@ def removeMetaData(node, className=None, undoable=True):
         for cp in classPlugs:
             if cp and cp.isLocked():
                 return False
-        
+
         # make sure data attribute is unlocked
         dataPlug = _getMetaDataPlug(mfnnode)
         if dataPlug and dataPlug.isLocked():
@@ -337,14 +349,14 @@ def removeMetaData(node, className=None, undoable=True):
                     cmds.deleteAttr(classPlug.name())
                 else:
                     mfnnode.removeAttribute(classPlug.attribute())
-        
+
         # remove data attribute
         if dataPlug:
             if undoable:
                 cmds.deleteAttr(dataPlug.name())
             else:
                 mfnnode.removeAttribute(dataPlug.attribute())
-    
+
     return True
 
 
