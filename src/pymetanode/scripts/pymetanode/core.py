@@ -121,7 +121,7 @@ def _removeMetaClassAttr(mfnnode, className, undoable=True):
     Returns:
         True if the attr was removed or didn't exist,
         False if it couldn't be removed.
-    """    
+    """
     classPlug = _getMetaClassPlug(mfnnode, className)
     if not classPlug:
         return True
@@ -145,6 +145,7 @@ def encodeMetaData(data):
             the data to serialize.
     """
     return str(encodeMetaDataValue(data))
+
 
 def encodeMetaDataValue(value):
     """
@@ -183,6 +184,7 @@ def decodeMetaData(data, refNode=None):
     except Exception as e:
         raise ValueError("Failed to decode meta data: {0}".format(e))
     return decodeMetaDataValue(data, refNode)
+
 
 def decodeMetaDataValue(value, refNode):
     """
@@ -266,7 +268,7 @@ def setMetaData(node, className, data, undoable=True, replace=False):
     if replace:
         setAllMetaData(node, {className: data}, undoable)
         return
-    
+
     mfnnode = utils.getMFnDependencyNode(node)
     plug = _getOrCreateMetaDataPlug(mfnnode, undoable)
     _addMetaClassAttr(mfnnode, className, undoable)
@@ -362,7 +364,9 @@ def updateMetaData(node, className, data):
     """
     fullData = getMetaData(node, className)
     if not isinstance(fullData, dict):
-        raise ValueError("meta data for node '{0}' is not a dict and cannot be updated".format(node))
+        raise ValueError(
+            "meta data for node '{0}' is not "
+            "a dict and cannot be updated".format(node))
     fullData.update(data)
     setMetaData(node, className, fullData)
 
@@ -396,7 +400,7 @@ def removeMetaData(node, className=None, undoable=True):
         dataPlug = _getMetaDataPlug(mfnnode)
         if dataPlug and dataPlug.isLocked():
             return False
-        
+
         # attempt to remove class attribute
         if not _removeMetaClassAttr(mfnnode, className, undoable):
             return False
@@ -432,7 +436,8 @@ def removeMetaData(node, className=None, undoable=True):
             return False
 
         # make sure all class attributes are unlocked
-        classPlugs = [_getMetaClassPlug(mfnnode, c) for c in getMetaClasses(node)]
+        classPlugs = [_getMetaClassPlug(mfnnode, c)
+                      for c in getMetaClasses(node)]
         for cp in classPlugs:
             if cp and cp.isLocked():
                 return False
@@ -467,6 +472,3 @@ def getMetaClasses(node):
     metaClassAttrs = [a for a in attrs if a.startswith(METACLASS_ATTR_PREFIX)]
     classes = [a[len(METACLASS_ATTR_PREFIX):] for a in metaClassAttrs]
     return classes
-
-
-
