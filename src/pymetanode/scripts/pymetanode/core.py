@@ -20,6 +20,7 @@ __all__ = [
     'hasMetaClass',
     'isMetaNode',
     'removeMetaData',
+    'setAllMetaData',
     'setMetaData',
     'updateMetaData',
 ]
@@ -29,6 +30,7 @@ METACLASS_ATTR_PREFIX = 'pyMetaClass_'
 METADATA_ATTR = 'pyMetaData'
 
 VALID_CLASSATTR = re.compile(r'^[_a-z0-9]*$', re.IGNORECASE)
+
 
 def _getMetaDataPlug(mfnnode):
     """
@@ -56,6 +58,82 @@ def _getMetaClassPlug(mfnnode, className):
         return mfnnode.findPlug(attrName)
     except RuntimeError:
         pass
+
+
+def _getOrCreateMetaDataPlug(mfnnode, undoable=True):
+    """
+    Return the MPlug for the meta data attribute on a node,
+    adding the attribute if it does not already exist.
+
+    Args:
+        mfnnode (MFnDependencyNode): The MFnDependencyNode of a node
+        undoable (bool): When True, the operation will be undoable
+    """
+    try:
+        plug = mfnnode.findPlug(METADATA_ATTR)
+    except:
+        if undoable:
+            cmds.addAttr(mfnnode.name(), ln=METADATA_ATTR, dt='string')
+        else:
+            mfnattr = api.MFnTypedAttribute()
+            attr = mfnattr.create(
+                METADATA_ATTR, METADATA_ATTR, api.MFnData.kString)
+            mfnnode.addAttribute(attr)
+        plug = mfnnode.findPlug(METADATA_ATTR)
+
+    return plug
+
+
+def _addMetaClassAttr(mfnnode, className, undoable=True):
+    """
+    Add a meta class attribute to a node.
+    Does nothing if the attribute already exists.
+
+    Args:
+        mfnnode (MFnDependencyNode): The MFnDependencyNode of a node
+        className (str): The meta data class name
+        undoable (bool): When True, the operation will be undoable
+    """
+    if not VALID_CLASSATTR.match(className):
+        raise ValueError('Invalid meta class name: ' + className)
+    classAttr = METACLASS_ATTR_PREFIX + className
+    try:
+        mfnnode.attribute(classAttr)
+    except RuntimeError:
+        if undoable:
+            cmds.addAttr(mfnnode.name(), ln=classAttr, at='short')
+        else:
+            mfnattr = api.MFnNumericAttribute()
+            attr = mfnattr.create(
+                classAttr, classAttr, api.MFnNumericData.kShort)
+            mfnnode.addAttribute(attr)
+
+
+def _removeMetaClassAttr(mfnnode, className, undoable=True):
+    """
+    Remove a meta class attribute from a node.
+    Does nothing if the attribute does not exist.
+
+    Args:
+        mfnnode (MFnDependencyNode): The api MFnDependencyNode of a node
+        undoable (bool): When True, the operation will be undoable
+
+    Returns:
+        True if the attr was removed or didn't exist,
+        False if it couldn't be removed.
+    """    
+    classPlug = _getMetaClassPlug(mfnnode, className)
+    if not classPlug:
+        return True
+
+    if classPlug.isLocked():
+        return False
+    else:
+        if undoable:
+            cmds.deleteAttr(classPlug.name())
+        else:
+            mfnnode.removeAttribute(classPlug.attribute())
+        return True
 
 
 def encodeMetaData(data):
@@ -170,42 +248,28 @@ def findMetaNodes(className=None, asPyNodes=True):
         return objs
 
 
-def setMetaData(node, className, data, undoable=True):
+def setMetaData(node, className, data, undoable=True, replace=False):
     """
     Set the meta data for the a meta class type on a node.
 
-    Args:
-        node: A PyMel node or string node name
-        className: A string name of the meta class type.
-        data: A python object to serialize and store as meta data
-        undoable: A bool, when True the change will be undoable
-    """
-    # get meta data plug
-    mfnnode = utils.getMFnDependencyNode(node)
-    try:
-        plug = mfnnode.findPlug(METADATA_ATTR)
-    except:
-        if undoable:
-            cmds.addAttr(mfnnode.name(), ln=METADATA_ATTR, dt='string')
-        else:
-            mfnattr = api.MFnTypedAttribute()
-            attr = mfnattr.create(METADATA_ATTR, METADATA_ATTR, api.MFnData.kString)
-            mfnnode.addAttribute(attr)
-        plug = mfnnode.findPlug(METADATA_ATTR)
+    The className must be a valid attribute name.
 
-    # ensure node has meta class type attribute
-    if not VALID_CLASSATTR.match(className):
-        raise ValueError('Invalid meta class name: ' + className)
-    classAttr = METACLASS_ATTR_PREFIX + className
-    try:
-        mfnnode.attribute(classAttr)
-    except RuntimeError:
-        if undoable:
-            cmds.addAttr(mfnnode.name(), ln=classAttr, at='short')
-        else:
-            mfnattr = api.MFnNumericAttribute()
-            attr = mfnattr.create(classAttr, classAttr, api.MFnNumericData.kShort)
-            mfnnode.addAttribute(attr)
+    Args:
+        node (PyNode or str): The node on which to set data
+        className (str): The data's meta class type name
+        data (dict): The data to serialize and store on the node
+        undoable (bool): When True, the operation will be undoable
+        replace (bool): When True, will replace all data on the node
+            with the new meta data. This uses setAllMetaData and can
+            be much faster with large data sets.
+    """
+    if replace:
+        setAllMetaData(node, {className: data}, undoable)
+        return
+    
+    mfnnode = utils.getMFnDependencyNode(node)
+    plug = _getOrCreateMetaDataPlug(mfnnode, undoable)
+    _addMetaClassAttr(mfnnode, className, undoable)
 
     # update meta data
     refNode = None
@@ -221,10 +285,46 @@ def setMetaData(node, className, data, undoable=True):
         plug.setString(newValue)
 
 
+def setAllMetaData(node, data, undoable=True):
+    """
+    Set all meta data on a node. This is faster because the
+    existing data on the node is not retrieved first and then
+    modified. The data must be first indexed by strings that
+    are valid meta class names, otherwise errors may occur
+    when retrieving it later.
+
+    New meta class attributes will be added automatically,
+    but existing meta class attributes will not be removed.
+    If old meta class attributes on this node will no longer
+    be applicable, they should be removed with removeAllData
+    first.
+
+    Args:
+        node (PyNode or str): The node on which to set data
+        data (dict): The data to serialize and store on the node
+        undoable (bool): When True, the operation will be undoable
+    """
+    mfnnode = utils.getMFnDependencyNode(node)
+    plug = _getOrCreateMetaDataPlug(mfnnode, undoable)
+
+    # add class attributes
+    if data:
+        for className in data.keys():
+            _addMetaClassAttr(mfnnode, className, undoable)
+
+    # set meta data
+    newValue = encodeMetaData(data)
+
+    if undoable:
+        cmds.setAttr(plug.name(), newValue, type='string')
+    else:
+        plug.setString(newValue)
+
+
 def getMetaData(node, className=None):
     """
-    Return meta data from a node. If `className` is given
-    returns only meta data for that meta class type.
+    Return meta data from a node. If `className` is given,
+    return only meta data for that meta class type.
 
     Args:
         node: A PyMel node or string node name
@@ -292,24 +392,19 @@ def removeMetaData(node, className=None, undoable=True):
     if className is not None:
         # remove meta data for the given class only
 
-        # make sure class attribute is unlocked
-        classPlug = _getMetaClassPlug(mfnnode, className)
-        if classPlug and classPlug.isLocked():
-            return False
-
         # make sure data attribute is unlocked
         dataPlug = _getMetaDataPlug(mfnnode)
         if dataPlug and dataPlug.isLocked():
             return False
+        
+        # attempt to remove class attribute
+        if not _removeMetaClassAttr(mfnnode, className, undoable):
+            return False
 
-        # remove class attribute
-        if classPlug:
-            if undoable:
-                cmds.deleteAttr(classPlug.name())
-            else:
-                mfnnode.removeAttribute(classPlug.attribute())
-
-        # remove class data
+        # remove class-specific data from all meta data
+        # TODO(bsayre): add a partialDecodeMetaData for uses like this
+        #   since we will only be modifying the core dict object and not
+        #   using any meta data values (like nodes)
         data = decodeMetaData(dataPlug.asString())
         if className in data:
             del data[className]
@@ -331,16 +426,16 @@ def removeMetaData(node, className=None, undoable=True):
     if removeAllData:
         # remove all meta data from the node
 
+        # make sure data attribute is unlocked
+        dataPlug = _getMetaDataPlug(mfnnode)
+        if dataPlug and dataPlug.isLocked():
+            return False
+
         # make sure all class attributes are unlocked
         classPlugs = [_getMetaClassPlug(mfnnode, c) for c in getMetaClasses(node)]
         for cp in classPlugs:
             if cp and cp.isLocked():
                 return False
-
-        # make sure data attribute is unlocked
-        dataPlug = _getMetaDataPlug(mfnnode)
-        if dataPlug and dataPlug.isLocked():
-            return False
 
         # remove class attributes
         for classPlug in classPlugs:
