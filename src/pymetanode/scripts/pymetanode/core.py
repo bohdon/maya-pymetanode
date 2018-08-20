@@ -144,7 +144,7 @@ def encodeMetaData(data):
         data: A python dictionary-like object representing
             the data to serialize.
     """
-    return str(encodeMetaDataValue(data))
+    return repr(encodeMetaDataValue(data))
 
 
 def encodeMetaDataValue(value):
