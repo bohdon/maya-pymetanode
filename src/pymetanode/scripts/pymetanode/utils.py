@@ -81,7 +81,7 @@ def getMObjectsByPlug(plugName):
     """
     sel = api.MSelectionList()
     try:
-        sel.add('*.' + plugName)
+        sel.add('*.' + plugName, True)
     except:
         pass
     count = sel.length()
