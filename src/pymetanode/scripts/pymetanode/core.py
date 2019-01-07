@@ -60,6 +60,46 @@ def _getMetaClassPlug(mfnnode, className):
         pass
 
 
+def _getUniqueNodeName(mfnnode):
+    """
+    Return the unique name of a Dependency node.
+    If the node is already unique, simply returns its
+    name, otherwise returns the unique path to the node.
+
+    Args:
+        mfnnode (MFnDependencyNode): A MFnDependencyNode with a node object
+
+    Returns:
+        The unique name or path (str) of the node.
+        E.g. 'node' or 'my|node'
+    """
+    if not mfnnode.hasUniqueName():
+        node = mfnnode.object()
+        if node.hasFn(api.MFn.kDagNode):
+            mfndag = api.MFnDagNode(mfnnode.object())
+            dagPath = api.MDagPath()
+            mfndag.getPath(dagPath)
+            return dagPath.partialPathName()
+    return mfnnode.name()
+
+
+def _getUniquePlugName(mfnnode, mplug):
+    """
+    Return the unique name of a MPlug, including its nodes name.
+
+    Args:
+        mfnnode (MFnDependencyNode): A MFnDependencyNode with the node.
+            Provided for performance reasons, since it is common to have
+            both this and the MPlug when needing the plug name in this package.
+        mplug (MPlug): A MPlug of a node
+
+    Returns:
+        The unique name or path including attribute (str) of the plug.
+        E.g. 'my|node.myPlug'
+    """
+    return _getUniqueNodeName(mfnnode) + '.' + mplug.partialName()
+
+
 def _getOrCreateMetaDataPlug(mfnnode, undoable=True):
     """
     Return the MPlug for the meta data attribute on a node,
@@ -68,12 +108,16 @@ def _getOrCreateMetaDataPlug(mfnnode, undoable=True):
     Args:
         mfnnode (MFnDependencyNode): The MFnDependencyNode of a node
         undoable (bool): When True, the operation will be undoable
+
+    Returns:
+        The plug (MPlug) for the meta data attribute.
     """
     try:
         plug = mfnnode.findPlug(METADATA_ATTR)
     except:
         if undoable:
-            cmds.addAttr(mfnnode.name(), ln=METADATA_ATTR, dt='string')
+            name = _getUniqueNodeName(mfnnode)
+            cmds.addAttr(name, ln=METADATA_ATTR, dt='string')
         else:
             mfnattr = api.MFnTypedAttribute()
             attr = mfnattr.create(
@@ -101,7 +145,8 @@ def _addMetaClassAttr(mfnnode, className, undoable=True):
         mfnnode.attribute(classAttr)
     except RuntimeError:
         if undoable:
-            cmds.addAttr(mfnnode.name(), ln=classAttr, at='short')
+            name = _getUniqueNodeName(mfnnode)
+            cmds.addAttr(name, ln=classAttr, at='short')
         else:
             mfnattr = api.MFnNumericAttribute()
             attr = mfnattr.create(
@@ -130,7 +175,8 @@ def _removeMetaClassAttr(mfnnode, className, undoable=True):
         return False
     else:
         if undoable:
-            cmds.deleteAttr(classPlug.name())
+            plugName = _getUniquePlugName(mfnnode, classPlug)
+            cmds.deleteAttr(plugName)
         else:
             mfnnode.removeAttribute(classPlug.attribute())
         return True
@@ -282,7 +328,8 @@ def setMetaData(node, className, data, undoable=True, replace=False):
     newValue = encodeMetaData(fullData)
 
     if undoable:
-        cmds.setAttr(plug.name(), newValue, type='string')
+        plugName = _getUniquePlugName(mfnnode, plug)
+        cmds.setAttr(plugName, newValue, type='string')
     else:
         plug.setString(newValue)
 
@@ -318,7 +365,8 @@ def setAllMetaData(node, data, undoable=True):
     newValue = encodeMetaData(data)
 
     if undoable:
-        cmds.setAttr(plug.name(), newValue, type='string')
+        plugName = _getUniquePlugName(mfnnode, plug)
+        cmds.setAttr(plugName, newValue, type='string')
     else:
         plug.setString(newValue)
 
@@ -415,7 +463,8 @@ def removeMetaData(node, className=None, undoable=True):
             newValue = encodeMetaData(data)
 
             if undoable:
-                cmds.setAttr(dataPlug.name(), newValue, type='string')
+                plugName = _getUniquePlugName(mfnnode, dataPlug)
+                cmds.setAttr(plugName, newValue, type='string')
             else:
                 dataPlug.setString(newValue)
 
@@ -446,14 +495,16 @@ def removeMetaData(node, className=None, undoable=True):
         for classPlug in classPlugs:
             if classPlug:
                 if undoable:
-                    cmds.deleteAttr(classPlug.name())
+                    plugName = _getUniquePlugName(mfnnode, classPlug)
+                    cmds.deleteAttr(plugName)
                 else:
                     mfnnode.removeAttribute(classPlug.attribute())
 
         # remove data attribute
         if dataPlug:
             if undoable:
-                cmds.deleteAttr(dataPlug.name())
+                plugName = _getUniquePlugName(mfnnode, dataPlug)
+                cmds.deleteAttr(plugName)
             else:
                 mfnnode.removeAttribute(dataPlug.attribute())
 
