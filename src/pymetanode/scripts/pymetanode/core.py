@@ -6,7 +6,7 @@ import pymel.core as pm
 import maya.cmds as cmds
 import maya.OpenMaya as api
 
-import utils
+from . import utils
 
 
 __all__ = [
@@ -203,7 +203,7 @@ def encodeMetaDataValue(value):
     """
     if isinstance(value, dict):
         result = {}
-        for k, v in value.iteritems():
+        for k, v in value.items():
             result[k] = encodeMetaDataValue(v)
         return result
     elif isinstance(value, (list, tuple)):
@@ -242,7 +242,7 @@ def decodeMetaDataValue(value, refNode):
     """
     if isinstance(value, dict):
         result = {}
-        for k, v in value.iteritems():
+        for k, v in value.items():
             result[k] = decodeMetaDataValue(v, refNode)
         return result
     elif isinstance(value, (list, tuple)):

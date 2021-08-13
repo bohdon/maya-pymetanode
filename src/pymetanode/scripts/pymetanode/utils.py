@@ -113,14 +113,14 @@ def isNode(obj):
     """
     if isinstance(obj, api.MObject) or isinstance(obj, pm.PyNode):
         return True
-    elif isinstance(obj, basestring):
+    elif isinstance(obj, str):
         return isUUID(obj) or pm.cmds.objExists(obj)
 
 def isUUID(obj):
     """
     Returns whether an object is a valid UUID
     """
-    return isinstance(obj, basestring) and VALID_UUID.match(obj)
+    return isinstance(obj, str) and VALID_UUID.match(obj)
 
 def getUUID(node):
     """
