@@ -388,16 +388,17 @@ def getMetaData(node, className=None):
         plug = mfnnode.findPlug(METADATA_ATTR)
         datastr = plug.asString()
     except RuntimeError:
-        return
+        return {}
     else:
         refNode = None
         if cmds.referenceQuery(str(node), isNodeReferenced=True):
             refNode = cmds.referenceQuery(str(node), rfn=True)
         data = decodeMetaData(datastr, refNode)
+
         if className is not None:
             return data.get(className, None)
-        else:
-            return data
+
+        return data
 
 
 def updateMetaData(node, className, data):
