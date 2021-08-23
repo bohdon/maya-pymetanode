@@ -396,7 +396,7 @@ def getMetaData(node, className=None):
         data = decodeMetaData(datastr, refNode)
 
         if className is not None:
-            return data.get(className, None)
+            return data.get(className, {})
 
         return data
 
