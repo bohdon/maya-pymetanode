@@ -1,11 +1,15 @@
-# Maya Python Meta Node
+# Python Metanode Utils
 
 A simple solution for storing python objects as data on a node in Maya.
 
-Lots of meta data solutions involve wrapping the complex nature of Maya's node attribute types and quirks to allow easy storing and retrieving of data, and connecting nodes via message attributes. PyMetaNode aims to avoid (most of) maya's attributes altogether for simplicity and flexibility. This places the responsibility of controlling data structures completely on the tools, and treats the nodes purely as storage.
+Lots of metadata solutions involve wrapping the complex nature of Maya's node attribute types and quirks to allow easy
+storing and retrieving of data, and connecting nodes via message attributes. PyMetaNode aims to avoid (most of) maya's
+attributes altogether for simplicity and flexibility. This places the responsibility of controlling data structures
+completely on the tools, and treats the nodes purely as storage.
 
-There are several advantages of using Maya nodes for storing data vs. alternate methods, such as not requiring any other files other than the maya scene containing the node, and the ability to undo and redo changes in nodes, and therefore changes in data.
-
+There are several advantages of using Maya nodes for storing data vs. alternate methods, such as not requiring any other
+files other than the maya scene containing the node, and the ability to undo and redo changes in nodes, and therefore
+changes in data.
 
 ## Design Goals
 
@@ -15,14 +19,30 @@ There are several advantages of using Maya nodes for storing data vs. alternate 
 - Fast
   - uses Maya api for all critical operations
 
-
 ## Features
 
-- Store data for multiple meta classes on a single node
-- Store basic python object types (any type supported by pythons `eval`)
-- Store references to other nodes inside meta data (planned)
-- Find any node with meta data
-- Find nodes with meta data for a specific meta class
+- Store data for multiple meta classes on a single node.
+- Store basic python object types (any type supported by pythons `eval`).
+- Store references to other nodes inside metadata.
+- Find any node with metadata.
+- Find nodes with metadata for a specific metaclass.
+
+## Installation
+
+- Download the [latest release](https://github.com/bohdon/maya-pymetanode/releases/latest)
+- Unzip and copy the contents to:
+  - Windows: `~/Documents/maya/modules/`
+  - Mac: `~/Library/Preferences/Autodesk/maya/modules/`
+  - Linux: `~/maya/modules/`
+
+> Note that you may need to create the `modules` folder if it does not exist.
+
+Once installed, the result should look like this:
+
+```
+.../modules/pymetanode/
+.../modules/pymetanode.mod
+```
 
 ## Basic Usage
 
