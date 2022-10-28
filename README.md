@@ -1,4 +1,4 @@
-# Python Metanode Utils
+# Maya Python Metanode Utils
 
 A simple solution for storing python objects as data on a node in Maya.
 
