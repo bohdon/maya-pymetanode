@@ -56,26 +56,26 @@ myData = {"myList": [1, 2, 3], "myTitle": "ABC"}
 myMetaClass = "MyMetaClass"
 # set meta data on the selected node
 node = pm.selected()[0]
-meta.setMetaData(node, myMetaClass, myData)
+meta.set_meta_data(node, myMetaClass, myData)
 
 # retrieve the stored data for 'MyMetaClass' only
 # result: {"myList":[1,2,3], "myTitle":"ABC"}
-meta.getMetaData(node, myMetaClass)
+meta.get_meta_data(node, myMetaClass)
 
 # retrieve all metadata on the node
 # result: {"MyMetaClass": {"myList":[1,2,3], "myTitle":"ABC"}}
-meta.getMetaData(node)
+meta.get_meta_data(node)
 
 # check if a node has meta data for a meta class
 # result: True
-meta.hasMetaClass(node, "MyMetaClass")
+meta.has_meta_class(node, "MyMetaClass")
 
 # check if a node has any meta data
 # result: True
-meta.isMetaNode(node)
+meta.is_meta_node(node)
 
 # find all nodes in the scene that have metadata for a class
-meta.findMetaNodes("MyMetaClass")
+meta.find_meta_nodes("MyMetaClass")
 ```
 
 ## How does it work
