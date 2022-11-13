@@ -1,4 +1,3 @@
-
 import ast
 import re
 
@@ -8,28 +7,26 @@ import maya.OpenMaya as api
 
 from . import utils
 
-
 __all__ = [
-    'decodeMetaData',
-    'decodeMetaDataValue',
-    'encodeMetaData',
-    'encodeMetaDataValue',
-    'findMetaNodes',
-    'getMetaClasses',
-    'getMetaData',
-    'hasMetaClass',
-    'isMetaNode',
-    'removeMetaData',
-    'setAllMetaData',
-    'setMetaData',
-    'updateMetaData',
+    "decodeMetaData",
+    "decodeMetaDataValue",
+    "encodeMetaData",
+    "encodeMetaDataValue",
+    "findMetaNodes",
+    "getMetaClasses",
+    "getMetaData",
+    "hasMetaClass",
+    "isMetaNode",
+    "removeMetaData",
+    "setAllMetaData",
+    "setMetaData",
+    "updateMetaData",
 ]
 
+METACLASS_ATTR_PREFIX = "pyMetaClass_"
+METADATA_ATTR = "pyMetaData"
 
-METACLASS_ATTR_PREFIX = 'pyMetaClass_'
-METADATA_ATTR = 'pyMetaData'
-
-VALID_CLASSATTR = re.compile(r'^[_a-z0-9]*$', re.IGNORECASE)
+VALID_CLASSATTR = re.compile(r"^[_a-z0-9]*$", re.IGNORECASE)
 
 
 def _getMetaDataPlug(mfnnode):
@@ -97,7 +94,7 @@ def _getUniquePlugName(mfnnode, mplug):
         The unique name or path including attribute (str) of the plug.
         E.g. 'my|node.myPlug'
     """
-    return _getUniqueNodeName(mfnnode) + '.' + mplug.partialName()
+    return _getUniqueNodeName(mfnnode) + "." + mplug.partialName()
 
 
 def _getOrCreateMetaDataPlug(mfnnode, undoable=True):
@@ -117,11 +114,10 @@ def _getOrCreateMetaDataPlug(mfnnode, undoable=True):
     except:
         if undoable:
             name = _getUniqueNodeName(mfnnode)
-            cmds.addAttr(name, ln=METADATA_ATTR, dt='string')
+            cmds.addAttr(name, ln=METADATA_ATTR, dt="string")
         else:
             mfnattr = api.MFnTypedAttribute()
-            attr = mfnattr.create(
-                METADATA_ATTR, METADATA_ATTR, api.MFnData.kString)
+            attr = mfnattr.create(METADATA_ATTR, METADATA_ATTR, api.MFnData.kString)
             mfnnode.addAttribute(attr)
         plug = mfnnode.findPlug(METADATA_ATTR)
 
@@ -139,18 +135,17 @@ def _addMetaClassAttr(mfnnode, className, undoable=True):
         undoable (bool): When True, the operation will be undoable
     """
     if not VALID_CLASSATTR.match(className):
-        raise ValueError('Invalid meta class name: ' + className)
+        raise ValueError("Invalid meta class name: " + className)
     classAttr = METACLASS_ATTR_PREFIX + className
     try:
         mfnnode.attribute(classAttr)
     except RuntimeError:
         if undoable:
             name = _getUniqueNodeName(mfnnode)
-            cmds.addAttr(name, ln=classAttr, at='short')
+            cmds.addAttr(name, ln=classAttr, at="short")
         else:
             mfnattr = api.MFnNumericAttribute()
-            attr = mfnattr.create(
-                classAttr, classAttr, api.MFnNumericData.kShort)
+            attr = mfnattr.create(classAttr, classAttr, api.MFnNumericData.kShort)
             mfnnode.addAttribute(attr)
 
 
@@ -226,7 +221,7 @@ def decodeMetaData(data, refNode=None):
         return {}
     # convert from string to python object
     try:
-        data = ast.literal_eval(data.replace('\r', ''))
+        data = ast.literal_eval(data.replace("\r", ""))
     except Exception as e:
         raise ValueError("Failed to decode meta data: {0}".format(e))
     return decodeMetaDataValue(data, refNode)
@@ -329,7 +324,7 @@ def setMetaData(node, className, data, undoable=True, replace=False):
 
     if undoable:
         plugName = _getUniquePlugName(mfnnode, plug)
-        cmds.setAttr(plugName, newValue, type='string')
+        cmds.setAttr(plugName, newValue, type="string")
     else:
         plug.setString(newValue)
 
@@ -366,7 +361,7 @@ def setAllMetaData(node, data, undoable=True):
 
     if undoable:
         plugName = _getUniquePlugName(mfnnode, plug)
-        cmds.setAttr(plugName, newValue, type='string')
+        cmds.setAttr(plugName, newValue, type="string")
     else:
         plug.setString(newValue)
 
@@ -413,9 +408,7 @@ def updateMetaData(node, className, data):
     """
     fullData = getMetaData(node, className)
     if not isinstance(fullData, dict):
-        raise ValueError(
-            "meta data for node '{0}' is not "
-            "a dict and cannot be updated".format(node))
+        raise ValueError("meta data for node '{0}' is not " "a dict and cannot be updated".format(node))
     fullData.update(data)
     setMetaData(node, className, fullData)
 
@@ -465,7 +458,7 @@ def removeMetaData(node, className=None, undoable=True):
 
             if undoable:
                 plugName = _getUniquePlugName(mfnnode, dataPlug)
-                cmds.setAttr(plugName, newValue, type='string')
+                cmds.setAttr(plugName, newValue, type="string")
             else:
                 dataPlug.setString(newValue)
 
@@ -486,8 +479,7 @@ def removeMetaData(node, className=None, undoable=True):
             return False
 
         # make sure all class attributes are unlocked
-        classPlugs = [_getMetaClassPlug(mfnnode, c)
-                      for c in getMetaClasses(node)]
+        classPlugs = [_getMetaClassPlug(mfnnode, c) for c in getMetaClasses(node)]
         for cp in classPlugs:
             if cp and cp.isLocked():
                 return False
@@ -522,5 +514,5 @@ def getMetaClasses(node):
     """
     attrs = cmds.listAttr(str(node))
     metaClassAttrs = [a for a in attrs if a.startswith(METACLASS_ATTR_PREFIX)]
-    classes = [a[len(METACLASS_ATTR_PREFIX):] for a in metaClassAttrs]
+    classes = [a[len(METACLASS_ATTR_PREFIX) :] for a in metaClassAttrs]
     return classes

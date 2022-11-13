@@ -1,29 +1,26 @@
-
 import re
 import pymel.core as pm
 import maya.OpenMaya as api
 
-
 __all__ = [
-    'findNodeByUUID',
-    'getMFnDependencyNode',
-    'getMObject',
-    'getMObjectsByPlug',
-    'getUUID',
-    'hasAttr',
-    'hasAttrFast',
-    'isNode',
-    'isUUID',
+    "findNodeByUUID",
+    "getMFnDependencyNode",
+    "getMObject",
+    "getMObjectsByPlug",
+    "getUUID",
+    "hasAttr",
+    "hasAttrFast",
+    "isNode",
+    "isUUID",
 ]
 
-
-VALID_UUID = re.compile('^[A-F0-9]{8}-([A-F0-9]{4}-){3}[A-F0-9]{12}$')
+VALID_UUID = re.compile("^[A-F0-9]{8}-([A-F0-9]{4}-){3}[A-F0-9]{12}$")
 
 
 def hasAttr(node, attrName):
     """
     Return True if the given node has the given attribute.
-    
+
     Args:
         node: A MObject, PyMel node, or string representing a node
         attrName: A string name of an attribute to test
@@ -33,7 +30,7 @@ def hasAttr(node, attrName):
     elif isinstance(node, pm.nt.DependNode):
         return hasAttrFast(node.__apimobject__(), attrName)
     else:
-        return pm.cmds.objExists(node + '.' + attrName)
+        return pm.cmds.objExists(node + "." + attrName)
 
 
 def hasAttrFast(mobject, attrName):
@@ -81,7 +78,7 @@ def getMObjectsByPlug(plugName):
     """
     sel = api.MSelectionList()
     try:
-        sel.add('*.' + plugName, True)
+        sel.add("*." + plugName, True)
     except:
         pass
     count = sel.length()
@@ -107,6 +104,7 @@ def getMFnDependencyNode(node):
         if mobj:
             return api.MFnDependencyNode(mobj)
 
+
 def isNode(obj):
     """
     Returns whether an object represents a Maya node
@@ -116,11 +114,13 @@ def isNode(obj):
     elif isinstance(obj, str):
         return isUUID(obj) or pm.cmds.objExists(obj)
 
+
 def isUUID(obj):
     """
     Returns whether an object is a valid UUID
     """
     return isinstance(obj, str) and VALID_UUID.match(obj)
+
 
 def getUUID(node):
     """
@@ -132,6 +132,7 @@ def getUUID(node):
     mfnnode = getMFnDependencyNode(node)
     if mfnnode:
         return mfnnode.uuid().asString()
+
 
 def findNodeByUUID(uuid, refNode=None):
     """
