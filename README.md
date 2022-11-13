@@ -1,4 +1,4 @@
-# Maya Python Metanode Utils
+# Maya Python Metadata Utils
 
 A simple solution for storing python objects as data on a node in Maya.
 
@@ -14,16 +14,16 @@ changes in data.
 ## Design Goals
 
 - Simple
-  - a very concise and straightforward api
-  - no need for custom plugin nodes to store your custom data
+  - A very concise and straightforward api.
+  - No need for custom plugin nodes to store your custom data.
 - Fast
-  - uses Maya api for all critical operations
+  - Uses Maya api for all critical operations.
 
 ## Features
 
-- Store data for multiple meta classes on a single node.
 - Store basic python object types (any type supported by pythons `eval`).
 - Store references to other nodes inside metadata.
+- Store data for multiple meta classes on a single node.
 - Find any node with metadata.
 - Find nodes with metadata for a specific metaclass.
 
@@ -51,16 +51,16 @@ import pymel.core as pm
 import pymetanode as meta
 
 # create some example data
-myData = {"myList": [1, 2, 3], "myTitle": "ABC"}
+my_data = {"myList": [1, 2, 3], "myTitle": "ABC"}
 # data must be associated with a metaclass
-myMetaClass = "MyMetaClass"
+my_meta_class = "MyMetaClass"
 # set meta data on the selected node
 node = pm.selected()[0]
-meta.set_metadata(node, myMetaClass, myData)
+meta.set_metadata(node, my_meta_class, my_data)
 
 # retrieve the stored data for 'MyMetaClass' only
 # result: {"myList":[1,2,3], "myTitle":"ABC"}
-meta.get_metadata(node, myMetaClass)
+meta.get_metadata(node, my_meta_class)
 
 # retrieve all metadata on the node
 # result: {"MyMetaClass": {"myList":[1,2,3], "myTitle":"ABC"}}
@@ -81,9 +81,9 @@ meta.find_meta_nodes("MyMetaClass")
 ## How does it work
 
 The implementation is very simple: python data is serialized into a string that is stored on a Maya node, and
-deserialized using `eval` when retrieved. Each 'metaclass' type adds an attribute on the node that is used to perform
-fast searching for nodes. Data goes through a basic encoding and decoding that allows node references and other
-potential future features.
+deserialized using `ast.literal_eval` when retrieved. Each 'metaclass' type adds an attribute on the node that is used
+to perform fast searching for nodes by metaclass. Data goes through a basic encoding and decoding that allows node
+references and other potential future features.
 
 ## Running Tests
 
