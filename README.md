@@ -51,35 +51,41 @@ import pymel.core as pm
 import pymetanode as meta
 
 # create some example data
-myData = {'myList':[1,2,3], 'myTitle':'ABC'}
-# data must be associated with a meta class
-myMetaClass = 'MyMetaClass'
+myData = {"myList": [1, 2, 3], "myTitle": "ABC"}
+# data must be associated with a metaclass
+myMetaClass = "MyMetaClass"
 # set meta data on the selected node
 node = pm.selected()[0]
 meta.setMetaData(node, myMetaClass, myData)
 
-
 # retrieve the stored data for 'MyMetaClass' only
-# result: {'myList':[1,2,3], 'myTitle':'ABC'}
+# result: {"myList":[1,2,3], "myTitle":"ABC"}
 meta.getMetaData(node, myMetaClass)
 
-# retrieve all meta data on the node
-# result: {'MyMetaClass': {'myList':[1,2,3], 'myTitle':'ABC'}}
+# retrieve all metadata on the node
+# result: {"MyMetaClass": {"myList":[1,2,3], "myTitle":"ABC"}}
 meta.getMetaData(node)
 
 # check if a node has meta data for a meta class
 # result: True
-meta.hasMetaClass(node, 'MyMetaClass')
+meta.hasMetaClass(node, "MyMetaClass")
 
 # check if a node has any meta data
 # result: True
 meta.isMetaNode(node)
 
-# find all nodes in the scene that have meta data for a class
-meta.findMetaNodes('MyMetaClass')
+# find all nodes in the scene that have metadata for a class
+meta.findMetaNodes("MyMetaClass")
 ```
-
 
 ## How does it work
 
-The implementation is very simple: python data is serialized into a string that is stored on a Maya node, and deserialized using `eval` when retrieved. Each 'meta class' type adds an additional attribute on the node that is used to perform fast searching for nodes. Data goes through a basic encoding and decoding that allows node references and other potential future features.
+The implementation is very simple: python data is serialized into a string that is stored on a Maya node, and
+deserialized using `eval` when retrieved. Each 'metaclass' type adds an attribute on the node that is used to perform
+fast searching for nodes. Data goes through a basic encoding and decoding that allows node references and other
+potential future features.
+
+## Running Tests
+
+- Add mayapy directory to `PATH` environment variable.
+- From the root directory of this repository, run `setup.sh test`
