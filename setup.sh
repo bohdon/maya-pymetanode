@@ -18,6 +18,7 @@ fi
 
 
 build() {
+    echo "Building..."
     mkdir -p build
     cp -R src/$PACKAGE_NAME build/
     cp -R src/$PACKAGE_NAME.mod build/
@@ -26,6 +27,7 @@ build() {
 release() {
     clean
     build
+    echo "Making release archive..."
     VERSION=`git describe --tags --abbrev=0`
     cd build
     zip -rX ${PROJECT_NAME}_${VERSION}.zip *
@@ -33,18 +35,21 @@ release() {
 }
 
 clean() {
+    echo "Cleaning..."
     rm -Rf build
 }
 
 dev() {
     uninstall
     clean
+    echo "Installing for development..."
     link `pwd`/src/$PACKAGE_NAME.mod $MAYA_MODULES_INSTALL_PATH/$PACKAGE_NAME.mod
     link `pwd`/src/$PACKAGE_NAME $MAYA_MODULES_INSTALL_PATH/$PACKAGE_NAME
 }
 
 test() {
     build
+    echo "Running tests..."
     mayapy tests build/$PACKAGE_NAME
 }
 
@@ -52,11 +57,13 @@ install() {
     uninstall
     clean
     build
+    echo "Installing..."
     cp -v build/$PACKAGE_NAME.mod $MAYA_MODULES_INSTALL_PATH/$PACKAGE_NAME.mod
     cp -Rv build/$PACKAGE_NAME $MAYA_MODULES_INSTALL_PATH/$PACKAGE_NAME
 }
 
 uninstall() {
+    echo "Uninstalling..."
     rm -v $MAYA_MODULES_INSTALL_PATH/$PACKAGE_NAME.mod
     rm -Rv $MAYA_MODULES_INSTALL_PATH/$PACKAGE_NAME
 }
