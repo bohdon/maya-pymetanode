@@ -56,19 +56,19 @@ myData = {"myList": [1, 2, 3], "myTitle": "ABC"}
 myMetaClass = "MyMetaClass"
 # set meta data on the selected node
 node = pm.selected()[0]
-meta.set_meta_data(node, myMetaClass, myData)
+meta.set_metadata(node, myMetaClass, myData)
 
 # retrieve the stored data for 'MyMetaClass' only
 # result: {"myList":[1,2,3], "myTitle":"ABC"}
-meta.get_meta_data(node, myMetaClass)
+meta.get_metadata(node, myMetaClass)
 
 # retrieve all metadata on the node
 # result: {"MyMetaClass": {"myList":[1,2,3], "myTitle":"ABC"}}
-meta.get_meta_data(node)
+meta.get_metadata(node)
 
 # check if a node has meta data for a meta class
 # result: True
-meta.has_meta_class(node, "MyMetaClass")
+meta.has_metaclass(node, "MyMetaClass")
 
 # check if a node has any meta data
 # result: True
