@@ -21,7 +21,8 @@ build() {
     echo "Building..."
     mkdir -p build
     cp -R src/$PACKAGE_NAME build/
-    cp -R src/$PACKAGE_NAME.mod build/
+    cp src/$PACKAGE_NAME.mod build/
+    cp LICENSE build/$PACKAGE_NAME
 }
 
 release() {
