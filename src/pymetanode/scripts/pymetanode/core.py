@@ -218,7 +218,7 @@ def encode_metadata_value(value: Any) -> Any:
     elif isinstance(value, (list, tuple)):
         return value.__class__([encode_metadata_value(v) for v in value])
     elif isinstance(value, pm.nt.DependNode):
-        return utils.get_uuid(value)
+        return utils.get_node_id(value)
     else:
         return value
 
@@ -256,8 +256,8 @@ def decode_metadata_value(value: str, ref_node: str = None) -> Any:
         return result
     elif isinstance(value, (list, tuple)):
         return value.__class__([decode_metadata_value(v, ref_node) for v in value])
-    elif utils.is_uuid(value):
-        return utils.find_node_by_uuid(value, ref_node)
+    elif utils.is_node_id(value):
+        return utils.find_node_by_id(value, ref_node)
     else:
         return value
 
