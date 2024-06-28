@@ -12,7 +12,16 @@ class TestMetaData(unittest.TestCase):
         pm.delete(self.node)
 
     def test_set_and_get_data(self):
-        set_data = ["myData", {"a": 1, "b": 2}, ("x", "y", "z")]
+        pm.namespace(add="test_ns")
+        node_a = pm.group(name="node_a", empty=True)
+        node_b = pm.group(name="test_ns:node_b", empty=True)
+
+        set_data = [
+            "myData",
+            {"a": 1, "b": 2},
+            ("x", "y", "z"),
+            [node_a, node_b],
+        ]
         class_name = "myMetaClass"
         meta.set_metadata(self.node, class_name, set_data)
         self.assertEqual(meta.get_metadata(self.node, class_name), set_data)

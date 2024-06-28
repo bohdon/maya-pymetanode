@@ -49,9 +49,25 @@ dev() {
 }
 
 test() {
+    if ! [[ "$1" ]]; then
+        echo "usage: setup.sh test [MAYAVERSION] ..."
+        return
+    fi
+
     build
     echo "Running tests..."
-    mayapy tests build/$PACKAGE_NAME
+    echo "Be sure to run 'setup.sh dev' first."
+
+    for version in "$@"
+    do
+        # find mayapy
+        mayapy="$PROGRAMFILES/Autodesk/Maya${version}/bin/mayapy.exe"
+        # log maya version
+        py_version=`"$mayapy" -V`
+        printf "\n> Maya ${version} (${py_version})\n"
+        # run tests
+        "$mayapy" tests build/$PACKAGE_NAME
+    done
 }
 
 install() {
@@ -94,11 +110,10 @@ link() {
     fi
 }
 
-
 # run command by name
 if [[ "$1" ]]; then
     cd $(dirname "$0")
-    $1
+    $1 "${@:2}"
 else
     echo -e "usage: setup.sh [COMMAND]\n  $ALL_COMMANDS"
 fi
