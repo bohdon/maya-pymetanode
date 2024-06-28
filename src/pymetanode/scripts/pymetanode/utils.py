@@ -28,7 +28,7 @@ LOG = logging.getLogger(__name__)
 UUID_REGEX = re.compile(r"[A-F0-9]{8}-([A-F0-9]{4}-){3}[A-F0-9]{12}")
 
 # matches a node id, accepting also just a UUID, e.g. "myNode@ABC12345-AB12-AB12-AB12-ABCDEF123456"
-NODE_ID_REGEX = re.compile(rf"((?P<name>\w+)@)?(?P<uuid>{UUID_REGEX.pattern})")
+NODE_ID_REGEX = re.compile(rf"((?P<name>[\w:]+)@)?(?P<uuid>{UUID_REGEX.pattern})")
 
 
 def has_attr(node: Union[api.MObject, pm.nt.DependNode, str], attr_name: str) -> bool:
