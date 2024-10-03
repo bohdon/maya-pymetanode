@@ -34,7 +34,7 @@ def has_attr(node: Union[api.MObject, str], attr_name: str) -> bool:
     Runs a fast version of has_attr if the node is an MObject, otherwise falls back to using `cmds.objExists`.
 
     Args:
-        node: An MObject, PyNode, or string representing a node.
+        node: An MObject or string representing a node.
         attr_name: The name of the attribute to find.
     """
     if isinstance(node, api.MObject):
@@ -69,7 +69,7 @@ def get_mfn_node(node: Union[api.MObject, str]) -> api.MFnDependencyNode:
     Return an MFnDependencyNode for a node.
 
     Args:
-        node: An MObject, PyNode, or string node name.
+        node: An MObject, or string node name.
     """
     if isinstance(node, api.MObject):
         return api.MFnDependencyNode(node)
@@ -84,7 +84,7 @@ def is_node(obj: Union[api.MObject, str]) -> bool:
     Return True if an object represents a Maya node.
 
     Args:
-        obj: A MObject, PyNode, uuid, node id, or string node name.
+        obj: A MObject, uuid, node id, or string node name.
     """
     if isinstance(obj, api.MObject):
         return True
@@ -98,7 +98,7 @@ def get_uuid(node: Union[api.MObject, str]) -> str:
     Return the UUID of a node.
 
     Args:
-        node: A MObject, PyNode, or string node name.
+        node: A MObject or string node name.
     """
     return core_utils.get_mfn_node_uuid(get_mfn_node(node))
 
@@ -158,7 +158,7 @@ def get_node_id(node: Union[api.MObject, str]) -> str:
     Return a string representation of a node that includes both its name and UUID.
 
     Args:
-        node: A MObject, PyNode, or string node name.
+        node: A MObject or string node name.
     """
     return core_utils.get_mfn_node_id(get_mfn_node(node))
 
