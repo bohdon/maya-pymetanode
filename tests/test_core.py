@@ -2,7 +2,7 @@ import unittest
 
 from maya import cmds
 
-import pymetanode as meta
+import pymetanode.api as meta
 
 
 class TestMetaData(unittest.TestCase):

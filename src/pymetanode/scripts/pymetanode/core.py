@@ -11,7 +11,7 @@ from typing import Optional, Any, Union
 import maya.OpenMaya as api
 from maya import cmds
 
-from . import utils
+from . import utils, core_utils
 
 METACLASS_ATTR_PREFIX = "pyMetaClass_"
 METADATA_ATTR = "pyMetaData"
@@ -30,7 +30,7 @@ def find_meta_nodes(class_name: str = None) -> list[api.MObject]:
         A list of PyNodes or MObjects that have metadata.
     """
     plug_name = f"{METACLASS_ATTR_PREFIX}{class_name}" if class_name else METADATA_ATTR
-    return utils.get_m_objects_by_plug(plug_name)
+    return core_utils.get_m_objects_by_plug(plug_name)
 
 
 def get_metaclass_names(node_name: str) -> list[str]:
@@ -189,7 +189,7 @@ class MetadataEncoder(object):
             return result
         elif isinstance(value, (list, tuple)):
             return value.__class__([self.decode_metadata_value(v, ref_node) for v in value])
-        elif utils.is_node_id(value):
+        elif core_utils.is_node_id(value):
             return self.find_node_by_id(value, ref_node)
         else:
             return value
