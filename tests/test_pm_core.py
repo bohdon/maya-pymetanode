@@ -1,21 +1,21 @@
 import unittest
 
-from maya import cmds
+import pymel.core as pm
 
 import pymetanode as meta
 
 
 class TestMetaData(unittest.TestCase):
     def setUp(self):
-        self.node = cmds.group(empty=True)
+        self.node = pm.group(empty=True)
 
     def tearDown(self):
-        cmds.delete(self.node)
+        pm.delete(self.node)
 
     def test_set_and_get_data(self):
-        cmds.namespace(add="test_ns")
-        node_a = cmds.group(name="node_a", empty=True)
-        node_b = cmds.group(name="test_ns:node_b", empty=True)
+        pm.namespace(add="test_ns")
+        node_a = pm.group(name="node_a", empty=True)
+        node_b = pm.group(name="test_ns:node_b", empty=True)
 
         set_data = [
             "myData",
@@ -43,7 +43,7 @@ class TestMetaData(unittest.TestCase):
 
     def test_remove_locked_data(self):
         meta.set_metadata(self.node, "myMetaClass", "myTestData")
-        cmds.setAttr(self.node + "." + meta.core.METADATA_ATTR, edit=True, lock=True)
+        self.node.attr(meta.core.METADATA_ATTR).setLocked(True)
         result = meta.remove_metadata(self.node)
         self.assertFalse(result)
         data = meta.get_metadata(self.node)
@@ -60,7 +60,7 @@ class TestMetaData(unittest.TestCase):
 
     def test_remove_locked_class(self):
         meta.set_metadata(self.node, "myMetaClass", "myTestData")
-        cmds.setAttr(self.node + "." + meta.core.METACLASS_ATTR_PREFIX + "myMetaClass", edit=True, lock=True)
+        self.node.attr(meta.core.METACLASS_ATTR_PREFIX + "myMetaClass").setLocked(True)
         result = meta.remove_metadata(self.node)
         self.assertFalse(result)
         data = meta.get_metadata(self.node)
@@ -69,17 +69,17 @@ class TestMetaData(unittest.TestCase):
 
 class TestNodeFinding(unittest.TestCase):
     def setUp(self):
-        self.node_a = cmds.group(empty=True)
+        self.node_a = pm.group(empty=True)
         meta.set_metadata(self.node_a, "ClassA", "A")
-        self.node_b = cmds.group(empty=True)
+        self.node_b = pm.group(empty=True)
         meta.set_metadata(self.node_b, "ClassB", "B")
         meta.set_metadata(self.node_b, "ClassD", "D")
-        self.node_c = cmds.group(empty=True)
+        self.node_c = pm.group(empty=True)
         meta.set_metadata(self.node_c, "ClassC", "C")
         meta.set_metadata(self.node_c, "ClassD", "D")
 
     def tearDown(self):
-        cmds.delete([self.node_a, self.node_b, self.node_c])
+        pm.delete([self.node_a, self.node_b, self.node_c])
 
     def test_find_all(self):
         nodes = meta.find_meta_nodes()

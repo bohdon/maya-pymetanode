@@ -1,9 +1,14 @@
-import re
+"""
+Utils for working with nodes and the maya api.
+"""
+
+from __future__ import annotations
+
 import logging
-from typing import Union, Optional, List
+import re
+from typing import Union, Optional
 
 import maya.OpenMaya as api
-import pymel.core as pm
 from maya import cmds
 
 __all__ = [
@@ -12,14 +17,18 @@ __all__ = [
     "find_node_by_uuid",
     "get_m_object",
     "get_m_objects_by_plug",
-    "get_mfn_dependency_node",
+    "get_mfn_node",
+    "get_mfn_node_id",
+    "get_mfn_node_uuid",
     "get_node_id",
     "get_uuid",
     "has_attr",
     "has_attr_fast",
     "is_node",
+    "is_node_from_ref",
     "is_node_id",
     "is_uuid",
+    "parse_node_id",
 ]
 
 LOG = logging.getLogger(__name__)
@@ -31,7 +40,7 @@ UUID_REGEX = re.compile(r"[A-F0-9]{8}-([A-F0-9]{4}-){3}[A-F0-9]{12}")
 NODE_ID_REGEX = re.compile(rf"((?P<name>[\w:]+)@)?(?P<uuid>{UUID_REGEX.pattern})")
 
 
-def has_attr(node: Union[api.MObject, pm.nt.DependNode, str], attr_name: str) -> bool:
+def has_attr(node: Union[api.MObject, str], attr_name: str) -> bool:
     """
     Return True if the given node has the given attribute.
 
@@ -43,8 +52,6 @@ def has_attr(node: Union[api.MObject, pm.nt.DependNode, str], attr_name: str) ->
     """
     if isinstance(node, api.MObject):
         return has_attr_fast(node, attr_name)
-    elif isinstance(node, pm.nt.DependNode):
-        return has_attr_fast(node.__apimobject__(), attr_name)
     else:
         return cmds.objExists(node + "." + attr_name)
 
@@ -66,31 +73,28 @@ def has_attr_fast(m_object: api.MObject, attr_name: str) -> bool:
         return False
 
 
-def get_m_object(node: Union[pm.nt.DependNode, str]) -> Optional[api.MObject]:
+def get_m_object(node: str) -> Optional[api.MObject]:
     """
     Return the MObject for a node.
 
     Args:
-        node: A PyNode or string node name.
+        node: A string node name.
 
     Returns:
         An MObject, or None if the node was not found.
     """
-    if isinstance(node, pm.nt.DependNode):
-        return node.__apimobject__()
-    else:
-        sel = api.MSelectionList()
-        try:
-            sel.add(node)
-        except RuntimeError:
-            # node does not exist or invalid arg
-            return
-        m_object = api.MObject()
-        sel.getDependNode(0, m_object)
-        return m_object
+    sel = api.MSelectionList()
+    try:
+        sel.add(node)
+    except RuntimeError:
+        # node does not exist or invalid arg
+        return
+    m_object = api.MObject()
+    sel.getDependNode(0, m_object)
+    return m_object
 
 
-def get_m_objects_by_plug(plug_name: str) -> List[api.MObject]:
+def get_m_objects_by_plug(plug_name: str) -> list[api.MObject]:
     """
     Return all nodes in the scene that have a specific plug.
 
@@ -112,7 +116,7 @@ def get_m_objects_by_plug(plug_name: str) -> List[api.MObject]:
     return result
 
 
-def get_mfn_dependency_node(node: Union[api.MObject, pm.nt.DependNode, str]) -> api.MFnDependencyNode:
+def get_mfn_node(node: Union[api.MObject, str]) -> api.MFnDependencyNode:
     """
     Return an MFnDependencyNode for a node.
 
@@ -121,26 +125,29 @@ def get_mfn_dependency_node(node: Union[api.MObject, pm.nt.DependNode, str]) -> 
     """
     if isinstance(node, api.MObject):
         return api.MFnDependencyNode(node)
-    elif isinstance(node, pm.nt.DependNode):
-        if node.exists():
-            return node.__apimfn__()
     else:
         m_object = get_m_object(node)
         if m_object:
             return api.MFnDependencyNode(m_object)
 
 
-def is_node(obj: Union[api.MObject, pm.nt.DependNode, str]) -> bool:
+def get_mfn_node_uuid(mfn_node: api.MFnDependencyNode):
+    if mfn_node:
+        return str(mfn_node.uuid().asString())
+    return ""
+
+
+def is_node(obj: Union[api.MObject, str]) -> bool:
     """
     Return True if an object represents a Maya node.
 
     Args:
         obj: A MObject, PyNode, uuid, node id, or string node name.
     """
-    if isinstance(obj, api.MObject) or isinstance(obj, pm.nt.DependNode):
+    if isinstance(obj, api.MObject):
         return True
     elif isinstance(obj, str):
-        return is_node(obj) or is_uuid(obj) or cmds.objExists(obj)
+        return is_uuid(obj) or cmds.objExists(obj)
     return False
 
 
@@ -151,20 +158,17 @@ def is_uuid(obj) -> bool:
     return isinstance(obj, str) and UUID_REGEX.fullmatch(obj)
 
 
-def get_uuid(node: Union[api.MObject, pm.nt.DependNode, str]) -> str:
+def get_uuid(node: Union[api.MObject, str]) -> str:
     """
     Return the UUID of a node.
 
     Args:
         node: A MObject, PyNode, or string node name.
     """
-    mfn_node = get_mfn_dependency_node(node)
-    if mfn_node:
-        return str(mfn_node.uuid().asString())
-    return ""
+    return get_mfn_node_uuid(get_mfn_node(node))
 
 
-def find_node_by_uuid(uuid: str, ref_node: str = None) -> Optional[pm.PyNode]:
+def find_node_by_uuid(uuid: str, ref_node: str = None) -> Optional[str]:
     """
     Find and return a node by its UUID.
 
@@ -173,49 +177,54 @@ def find_node_by_uuid(uuid: str, ref_node: str = None) -> Optional[pm.PyNode]:
         ref_node: The name of the reference node that contains the node to find.
 
     Returns:
-        A PyNode with the UUID from the given reference, or None if not found.
+        The name of a node with the UUID from the given reference, or None if not found.
     """
-    nodes = pm.ls(uuid)
-    if not nodes:
+    node_names: list[str] = cmds.ls(uuid)
+    if not node_names:
         return
 
     if ref_node:
         # return the first node that belongs to the given reference
-        for node in nodes:
-            node_name = str(node)
-            if cmds.referenceQuery(node_name, isNodeReferenced=True):
-                if cmds.referenceQuery(node_name, referenceNode=True) == ref_node:
-                    return node
+        for node_name in node_names:
+            if is_node_from_ref(node_name, ref_node):
+                return node_name
     else:
         # take the first result
-        return nodes[0]
+        return node_names[0]
 
 
-def find_node_by_name(name: str, ref_node: str = None) -> Optional[pm.PyNode]:
+def find_node_by_name(name: str, ref_node: str = None) -> Optional[str]:
     """
-    Find and return a node by its name.
+    Find and return a node by its name, selecting the one from a specific reference if given.
 
     Args:
         name: A string representing the node name.
         ref_node: The name of the reference node that contains the node to find.
 
     Returns:
-        A PyNode.
+        A string node name.
     """
-    nodes = pm.ls(name)
-    if not nodes:
+    node_names: list[str] = cmds.ls(name)
+    if not node_names:
         return
 
     if ref_node:
         # return the first node that belongs to the given reference
-        for node in nodes:
-            node_name = str(node)
-            if cmds.referenceQuery(node_name, isNodeReferenced=True):
-                if cmds.referenceQuery(node_name, referenceNode=True) == ref_node:
-                    return node
+        for node_name in node_names:
+            if is_node_from_ref(node_name, ref_node):
+                return node_name
     else:
         # take the first result
-        return nodes[0]
+        return node_names[0]
+
+
+def is_node_from_ref(node_name: str, ref_node: str):
+    if not ref_node:
+        raise ValueError("ref_node invalid")
+
+    if cmds.referenceQuery(node_name, isNodeReferenced=True):
+        return cmds.referenceQuery(node_name, referenceNode=True) == ref_node
+    return False
 
 
 def is_node_id(obj):
@@ -225,26 +234,28 @@ def is_node_id(obj):
     return isinstance(obj, str) and NODE_ID_REGEX.fullmatch(obj)
 
 
-def get_node_id(node: Union[api.MObject, pm.nt.DependNode, str]) -> str:
+def get_node_id(node: Union[api.MObject, str]) -> str:
     """
     Return a string representation of a node that includes both its name and UUID.
 
     Args:
         node: A MObject, PyNode, or string node name.
     """
-    mfn_node = get_mfn_dependency_node(node)
+    return get_mfn_node_id(get_mfn_node(node))
+
+
+def get_mfn_node_id(mfn_node: api.MFnDependencyNode):
     if mfn_node:
         return f"{mfn_node.name()}@{mfn_node.uuid().asString()}"
     return ""
 
 
-def find_node_by_id(node_id: str, ref_node: str = None) -> Optional[pm.PyNode]:
+def parse_node_id(node_id: str) -> (str, str):
     """
-    Find and return a node by id.
+    Parse a node id and return a tuple of (node_name, uuid)
 
     Args:
-        node_id: A string representing the node, in the format of either a UUID, or name[UUID] .
-        ref_node: The name of the reference node that contains the node to find.
+        node_id: A string representing the node, in the format of either a UUID, or name@UUID.
     """
     match = NODE_ID_REGEX.fullmatch(node_id)
     if not match:
@@ -253,16 +264,29 @@ def find_node_by_id(node_id: str, ref_node: str = None) -> Optional[pm.PyNode]:
     node_name = match.groupdict()["name"]
     uuid = match.groupdict()["uuid"]
 
+    return node_name, uuid
+
+
+def find_node_by_id(node_id: str, ref_node: str = None) -> Optional[str]:
+    """
+    Find and return a node by id.
+
+    Args:
+        node_id: A string representing the node, in the format of either a UUID, or name@UUID.
+        ref_node: The name of the reference node that contains the node to find.
+    """
+    node_name, uuid = parse_node_id(node_id)
+
     # try finding by UUID first
-    node = find_node_by_uuid(uuid, ref_node)
-    if node:
-        return node
+    node_name = find_node_by_uuid(uuid, ref_node)
+    if node_name:
+        return node_name
 
     # try finding by name as a fallback
     if node_name:
-        node = find_node_by_name(node_name, ref_node)
-        if node:
-            return node
+        node_name = find_node_by_name(node_name, ref_node)
+        if node_name:
+            return node_name
 
     LOG.error("Could not find node by UUID or name: %s", node_id)
     return None
